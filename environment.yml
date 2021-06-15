@@ -1,0 +1,17 @@
+name: shore-cap-ocr-service
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - django=3.2
+  - kafka-python=2.0.2
+  - pip=21.1
+  - psycopg2=2.8
+  - python=3.9
+  - djangorestframework
+  - pytesseract
+  - pypdf2
+  - pdf2image
+  - boto3
+  - pre_commit
+  - pyyaml
