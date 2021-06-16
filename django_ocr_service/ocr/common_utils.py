@@ -115,5 +115,3 @@ def pdf_to_image(
         raise NotImplementedError
 
     return s3_object_paths or [images]
-
-

@@ -8,7 +8,7 @@ import uuid
 import yaml
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_DIR = os.path.join(THIS_DIR, "..", "config")
+CONFIG_DIR = os.path.join(THIS_DIR, "..", "..", "config")
 
 for filename in os.listdir(CONFIG_DIR):
     if ".local" in filename:

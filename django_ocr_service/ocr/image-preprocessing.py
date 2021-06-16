@@ -25,12 +25,13 @@ def get_size_of_scaled_image(im):
         size = factor * length_x, factor * width_y
     return size
 
+
 def set_image_dpi(file_path):
     im = Image.open(file_path)
     # size = (1800, 1800)
     size = get_size_of_scaled_image(im)
     im_resized = im.resize(size, Image.ANTIALIAS)
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.jpg')
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
     temp_filename = temp_file.name
     im_resized.save(temp_filename, dpi=(300, 300))  # best for OCR
     return temp_filename
@@ -45,9 +46,11 @@ def image_smoothening(img):
 
 
 def remove_noise_and_smooth(file_name):
-    logging.info('Removing noise and smoothening image')
+    logging.info("Removing noise and smoothening image")
     img = cv2.imread(file_name, 0)
-    filtered = cv2.adaptiveThreshold(img.astype(np.uint8), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 41, 3)
+    filtered = cv2.adaptiveThreshold(
+        img.astype(np.uint8), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 41, 3
+    )
     kernel = np.ones((1, 1), np.uint8)
     opening = cv2.morphologyEx(filtered, cv2.MORPH_OPEN, kernel)
     closing = cv2.morphologyEx(opening, cv2.MORPH_CLOSE, kernel)
@@ -55,8 +58,9 @@ def remove_noise_and_smooth(file_name):
     or_image = cv2.bitwise_or(img, closing)
     return or_image
 
+
 def process_image_for_ocr(file_path):
-    logging.info('Processing image for text Extraction')
+    logging.info("Processing image for text Extraction")
     temp_filename = set_image_dpi(file_path)
     im_new = remove_noise_and_smooth(temp_filename)
     return im_new
