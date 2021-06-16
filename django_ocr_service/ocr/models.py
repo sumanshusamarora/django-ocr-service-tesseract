@@ -102,7 +102,6 @@ class OCRInput(models.Model):
                     ocr_text = ocr_image(imagepath=image)
                     ocr_text_list.append(ocr_text)
                     output_dict[s3_object_paths[index]] = ocr_text
-                    break
 
                 self.ocr_text = "\n".join(ocr_text)
                 self.result_response = output_dict
