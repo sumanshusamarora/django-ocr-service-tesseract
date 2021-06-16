@@ -14,12 +14,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from ocr.views import GenerateOcrFromPDF
+from django.urls import include, path
+from ocr.api import GenerateOcrFromPDF
 from ocr.token import GenerateToken
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('api/ocr/', GenerateOcrFromPDF.as_view()),
-    path('api/token/', GenerateToken.as_view()),
+    path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
+    path("api/ocr/", GenerateOcrFromPDF.as_view()),
+    path("api/get-token/", GenerateToken.as_view()),
 ]

@@ -34,7 +34,7 @@ if not config.get("DEBUG"):
     else:
         config["DEBUG"] = False
 else:
-    ast.literal_eval(config.get("DEBUG"))
+    config.get("DEBUG")
 
 if os.environ.get("AWS_ACCESS_KEY_ID"):
     config["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID")
@@ -46,11 +46,32 @@ if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     config["AWS_STORAGE_BUCKET_NAME"] = os.environ.get("AWS_STORAGE_BUCKET_NAME")
 
 
-
 if not config.get("ALLOWED_HOSTS"):
     config["ALLOWED_HOSTS"] = "*"
 
-if os.environ.get("SUPERUSER"):
-    config["SUPERUSER"] = os.environ.get("SUPERUSER")
+if not config.get("TOKEN_VALIDITY_IN_HOURS"):
+    config["TOKEN_VALIDITY_IN_HOURS"] = 1
 else:
-    config["SUPERUSER"] = None
+    config["TOKEN_VALIDITY_IN_HOURS"] = int(config["TOKEN_VALIDITY_IN_HOURS"])
+
+if not os.environ.get("DJANGO_SUPERUSER_USERNAME") and not config.get(
+    "DJANGO_SUPERUSER_USERNAME"
+):
+    config["DJANGO_SUPERUSER_USERNAME"] = None
+
+if not os.environ.get("DJANGO_SUPERUSER_EMAIL") and not config.get(
+    "DJANGO_SUPERUSER_EMAIL"
+):
+    config["DJANGO_SUPERUSER_EMAIL"] = None
+
+if not os.environ.get("DJANGO_SUPERUSER_PASSWORD") and not config.get(
+    "DJANGO_SUPERUSER_PASSWORD"
+):
+    config["DJANGO_SUPERUSER_PASSWORD"] = None
+
+# IMAGE PREPROCSSING
+if not config.get("IMAGE_SIZE"):
+    config["IMAGE_SIZE"] = 1800
+
+if not config.get("BINARY_THRESHOLD"):
+    config["BINARY_THRESHOLD"] = 180

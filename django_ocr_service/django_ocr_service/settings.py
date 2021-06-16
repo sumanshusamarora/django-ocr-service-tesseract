@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
+from datetime import timedelta
 import logging.config
 import os
 
@@ -24,25 +25,32 @@ with open(os.path.join(BASE_DIR, "logging.yaml"), "r") as logginginput:
     logging_config = yaml.safe_load(logginginput)
     logging.config.dictConfig(logging_config)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config["SECRET_KEY"]
-AWS_ACCESS_KEY_ID = config["AWS_ACCESS_KEY_ID"]
-AWS_SECRET_ACCESS_KEY = config["AWS_SECRET_ACCESS_KEY"]
+
+# CLOUD SETTINGS
+os.environ["AWS_ACCESS_KEY_ID"] = config["AWS_ACCESS_KEY_ID"]
+os.environ["AWS_SECRET_ACCESS_KEY"] = config["AWS_SECRET_ACCESS_KEY"]
+os.environ["AWS_STORAGE_BUCKET_NAME"] = config["AWS_STORAGE_BUCKET_NAME"]
 AWS_STORAGE_BUCKET_NAME = config["AWS_STORAGE_BUCKET_NAME"]
 
-os.environ["AWS_ACCESS_KEY_ID"] = AWS_ACCESS_KEY_ID
-os.environ["AWS_SECRET_ACCESS_KEY"] = AWS_SECRET_ACCESS_KEY
-os.environ["AWS_STORAGE_BUCKET_NAME"] = AWS_STORAGE_BUCKET_NAME
+# SUPERUSER ENV VARIABLES
+os.environ["DJANGO_SUPERUSER_USERNAME"] = config["DJANGO_SUPERUSER_USERNAME"]
+os.environ["DJANGO_SUPERUSER_EMAIL"] = config["DJANGO_SUPERUSER_EMAIL"]
+os.environ["DJANGO_SUPERUSER_PASSWORD"] = config["DJANGO_SUPERUSER_PASSWORD"]
 
+# IMAGE PREPROCESSING
+IMAGE_SIZE = config["IMAGE_SIZE"]
+BINARY_THRESHOLD = config["BINARY_THRESHOLD"]
+
+# REST
+TOKEN_VALIDITY_IN_HOURS = config["TOKEN_VALIDITY_IN_HOURS"]
+EXPIRING_TOKEN_DURATION = timedelta(hours=TOKEN_VALIDITY_IN_HOURS)
+
+# OTHER DJANGO
 DEBUG = config["DEBUG"]
-
 ALLOWED_HOSTS = config["ALLOWED_HOSTS"].split(",")
-
-# SUPERUSER
-SUPERUSER = config["SUPERUSER"]
 
 # Application definition
 
@@ -55,7 +63,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "ocr.apps.OcrConfig",
     "rest_framework",
-    "s3_file_field",
+    "django_expiring_token",
+    "storages",
 ]
 
 MIDDLEWARE = [
@@ -72,6 +81,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.SessionAuthentication",
+        "django_expiring_token.authentication.ExpiringTokenAuthentication",
     ]
 }
 
@@ -95,16 +105,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "django_ocr_service.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+DATABASES = config["DATABASES"]
 
 
 # Password validation
@@ -114,9 +118,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 
@@ -134,19 +144,16 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
-
+# STORAGE BACKEND RELATED
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'mysite/static'),
+    os.path.join(BASE_DIR, "static"),
 ]
 STATIC_URL = "/static/"
 
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-STATICFILES_STORAGE = "storages.backends.s3boto3.S3StaticStorage"
+
+DEFAULT_FILE_STORAGE = "django_ocr_service.custom_storage.CloudMediaStorage"
+STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"

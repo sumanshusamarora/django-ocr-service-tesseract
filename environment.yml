@@ -1,4 +1,4 @@
-name: shore-cap-ocr-service
+name: django-ocr-service
 channels:
   - conda-forge
   - defaults
@@ -15,3 +15,9 @@ dependencies:
   - boto3
   - pre_commit
   - pyyaml
+  - black
+  - opencv
+  - pip:
+      - django-expiring-token
+      - django-storages
+      - s3urls
