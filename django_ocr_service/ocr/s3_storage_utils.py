@@ -26,12 +26,12 @@ def is_s3(url: str):
     :return:
     """
     try:
-        _ = parse_url(url)
-        return True
+        parse_url_dict = parse_url(url)
+        return parse_url_dict
     except:
         logger.info(f"{url} not a valid S3 url")
 
-    return False
+    return None
 
 
 def delete_objects_from_s3(keys, bucket: str):
@@ -54,7 +54,7 @@ def delete_objects_from_s3(keys, bucket: str):
             logger.error(exception)
 
 
-def load_from_s3_and_save(obj: str, bucket: str, local_save_dir="/tmp"):
+def load_from_s3_and_save(obj: str, bucket: str, local_save_dir: str):
     """
 
     :param obj: Object path

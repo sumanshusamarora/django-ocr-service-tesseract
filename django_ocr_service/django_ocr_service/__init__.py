@@ -75,3 +75,8 @@ if not config.get("IMAGE_SIZE"):
 
 if not config.get("BINARY_THRESHOLD"):
     config["BINARY_THRESHOLD"] = 180
+
+
+# OCR
+if not config.get("OCR_OEM"):
+    config["OCR_OEM"] = 11

@@ -25,13 +25,7 @@ class GenerateOcrFromPDF(APIView):
         :return:
         """
         data = request.data.dict()
-        import pdb
-
-        pdb.set_trace()
-        model_obj = OCRInput.objects.create(**data)
         ocr_input_serializer_obj = OCRInputSerializer(data=data)
         if ocr_input_serializer_obj.is_valid():
-            import pdb
-
-            pdb.set_trace()
-            return Response(status=status.HTTP_200_OK)
+            model_obj = OCRInput.objects.create(**data)
+            return Response(data={"response":model_obj.result_response}, status=status.HTTP_200_OK)
