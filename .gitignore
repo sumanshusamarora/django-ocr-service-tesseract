@@ -32,3 +32,5 @@ coverage.xml
 
 config/config.yml
 config/config.local.yml
+
+django_ocr_service/media/input_pdfs/*.pdf
