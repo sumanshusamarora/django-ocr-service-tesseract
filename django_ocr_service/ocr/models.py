@@ -13,6 +13,7 @@ import urllib
 from . import (
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
+    delete_objects_from_cloud_storage,
     is_image,
     is_pdf,
     ocr_image,
@@ -57,6 +58,23 @@ class OCRInput(models.Model):
         """
         if not self.file.name and not self.cloud_storage_url_or_uri:
             raise ValidationError("Cloud file path or file upload required")
+
+    def _delete_input_file(self):
+        """
+
+        :return:
+        """
+        if self.file.name:
+            self.file.storage.delete(name=self.file.name)
+            logger.info("Dropped uploaded input file")
+        else:
+            parsed_url_dict = parse_url(self.cloud_storage_url_or_uri)
+            delete_objects_from_cloud_storage(
+                keys=[parsed_url_dict["key"]], bucket=parsed_url_dict["bucket"]
+            )
+            logger.info(
+                f'Dropped input file {parsed_url_dict["key"]} in bucket {parsed_url_dict["bucket"]}'
+            )
 
     def _do_ocr(self):
         """
@@ -116,7 +134,7 @@ class OCRInput(models.Model):
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
             # Drop input file post processing
             if settings.DROP_INPUT_FILE_POST_PROCESSING:
-                self.file.storage.delete(name=self.file.name)
+                self._delete_input_file()
 
     def save(self, *args, **kwargs):
         """

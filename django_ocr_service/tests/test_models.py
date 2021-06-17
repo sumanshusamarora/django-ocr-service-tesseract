@@ -27,7 +27,7 @@ class TestOCRInputModel:
         data = File(open(TESTFILE_PDF_PATH, "rb"))
         filename = os.path.split(TESTFILE_PDF_PATH)[-1]
 
-        self.upload_image = InMemoryUploadedFile(
+        self.upload_file = InMemoryUploadedFile(
             name=filename,
             file=data,
             content_type="multipart/form-data",

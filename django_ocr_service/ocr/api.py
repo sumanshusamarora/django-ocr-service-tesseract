@@ -38,7 +38,7 @@ class GenerateToken(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-class GenerateOcrFromPDF(APIView):
+class GenerateOCR(APIView):
     """ """
 
     authentication_classes = [ExpiringTokenAuthentication, BasicAuthentication]

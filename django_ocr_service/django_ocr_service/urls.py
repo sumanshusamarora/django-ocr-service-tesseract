@@ -15,12 +15,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from ocr.api import GenerateOcrFromPDF
+from ocr.api import GenerateOCR
 from ocr.api import GenerateToken
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
-    path("api/ocr/", GenerateOcrFromPDF.as_view()),
+    path("api/ocr/", GenerateOCR.as_view()),
     path("api/get-token/", GenerateToken.as_view()),
 ]
