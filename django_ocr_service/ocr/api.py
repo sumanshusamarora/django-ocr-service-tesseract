@@ -27,5 +27,16 @@ class GenerateOcrFromPDF(APIView):
         data = request.data.dict()
         ocr_input_serializer_obj = OCRInputSerializer(data=data)
         if ocr_input_serializer_obj.is_valid():
-            model_obj = OCRInput.objects.create(**data)
-            return Response(data={"response":model_obj.result_response}, status=status.HTTP_200_OK)
+            try:
+                model_obj = OCRInput.objects.create(**data)
+                return Response(
+                    data={"response": model_obj.result_response},
+                    status=status.HTTP_200_OK,
+                )
+            except Exception as exception:
+                return Response(
+                    data={"Response": exception},
+                    status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)

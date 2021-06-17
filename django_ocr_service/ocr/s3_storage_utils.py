@@ -8,6 +8,7 @@ import logging
 import os
 
 import boto3
+from django.conf import settings
 from s3urls import parse_url
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ else:
     raise ConnectionError("AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY variables not set")
 
 
-def is_s3(url: str):
+def is_cloud_storage(url: str):
     """
 
     :param path: Path to file or dir
@@ -34,7 +35,7 @@ def is_s3(url: str):
     return None
 
 
-def delete_objects_from_s3(keys, bucket: str):
+def delete_objects_from_cloud_storage(keys, bucket: str):
     """
 
     :param obj: Object path
@@ -54,7 +55,7 @@ def delete_objects_from_s3(keys, bucket: str):
             logger.error(exception)
 
 
-def load_from_s3_and_save(obj: str, bucket: str, local_save_dir: str):
+def load_from_cloud_storage_and_save(obj: str, bucket: str, local_save_dir: str):
     """
 
     :param obj: Object path
@@ -76,20 +77,19 @@ def load_from_s3_and_save(obj: str, bucket: str, local_save_dir: str):
     return save_path
 
 
-def upload_to_s3(
+def generate_cloud_storage_key(
     path: str,
-    bucket: str,
+    key: str,
     prefix: str = None,
-    key: str = None,
     append_datetime: bool = True,
 ):
     """
-
-    :param path: Local filepath
-    :param bucket: Bucket Name
-    :param key: Key name if different from original
-
-    :return: S3 filepath
+    Generates a key for object to be uploaded
+    :param path:
+    :param key:
+    :param prefix:
+    :param append_datetime:
+    :return:
     """
     if not os.path.isfile(path):
         raise ValueError(f"Invalid filepath {path}")
@@ -104,6 +104,27 @@ def upload_to_s3(
     if prefix and prefix not in key:
         key = os.path.join(prefix, key)
 
+    return key
+
+
+def upload_to_cloud_storage(
+    path: str,
+    bucket: str,
+    prefix: str = None,
+    key: str = None,
+    append_datetime: bool = True,
+):
+    """
+
+    :param path: Local filepath
+    :param bucket: Bucket Name
+    :param key: Key name if different from original
+
+    :return: S3 filepath
+    """
+    key = generate_cloud_storage_key(
+        path=path, key=key, prefix=prefix, append_datetime=append_datetime
+    )
     try:
         s3_client.upload_file(path, bucket, key)
         logger.info(f"Successfully uploaded file {path} to {key}")
@@ -111,4 +132,6 @@ def upload_to_s3(
         logger.error(exception)
         return None
 
-    return key
+    return s3_client.generate_presigned_url(
+        "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600
+    )

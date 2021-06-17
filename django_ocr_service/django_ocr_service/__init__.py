@@ -45,6 +45,8 @@ if os.environ.get("AWS_SECRET_ACCESS_KEY"):
 if os.environ.get("AWS_STORAGE_BUCKET_NAME"):
     config["AWS_STORAGE_BUCKET_NAME"] = os.environ.get("AWS_STORAGE_BUCKET_NAME")
 
+if os.environ.get("AWS_REGION"):
+    config["AWS_REGION"] = os.environ.get("AWS_REGION")
 
 if not config.get("ALLOWED_HOSTS"):
     config["ALLOWED_HOSTS"] = "*"
@@ -80,3 +82,38 @@ if not config.get("BINARY_THRESHOLD"):
 # OCR
 if not config.get("OCR_OEM"):
     config["OCR_OEM"] = 11
+
+# DATABASES
+if not config.get("DATABASES"):
+    config["DATABASES"] = {
+        "default": {"ENGINE": "django.db.backends.postgresql_psycopg2"}
+    }
+
+if os.environ.get("DB_NAME"):
+    config["DATABASES"]["default"]["NAME"] = os.environ.get("DB_NAME")
+
+if os.environ.get("DB_PASSWORD"):
+    config["DATABASES"]["default"]["PASSWORD"] = os.environ.get("DB_PASSWORD")
+
+if os.environ.get("DB_HOST"):
+    config["DATABASES"]["default"]["HOST"] = os.environ.get("DB_HOST")
+
+if os.environ.get("DB_USER"):
+    config["DATABASES"]["default"]["USER"] = os.environ.get("DB_USER")
+
+if os.environ.get("DB_PORT"):
+    config["DATABASES"]["default"]["PORT"] = os.environ.get("DB_PORT")
+
+if os.environ.get("DB_SCHEMA"):
+    config["DATABASES"]["default"]["OPTIONS"] = {
+        "options": f"-c search_path={os.environ.get('DB_SCHEMA')}"
+    }
+
+
+if os.environ.get("USE_THREADING_TO_UPLOAD_DELETE"):
+    config["USE_THREADING_TO_UPLOAD_DELETE"] = os.environ.get(
+        "USE_THREADING_TO_UPLOAD_DELETE"
+    )
+
+if not config.get("USE_THREADING_TO_UPLOAD_DELETE"):
+    config["USE_THREADING_TO_UPLOAD_DELETE"] = True

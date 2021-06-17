@@ -1,6 +1,7 @@
 """
 Common OCR utils
 """
+from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 import os
 import logging
@@ -17,9 +18,9 @@ from pytesseract import image_to_data
 from s3urls import parse_url
 
 from . import (
-    is_s3,
-    upload_to_s3,
-    load_from_s3_and_save,
+    is_cloud_storage,
+    upload_to_cloud_storage,
+    load_from_cloud_storage_and_save,
     preprocess_image_for_ocr,
 )
 
@@ -39,6 +40,7 @@ def is_pdf(filepath: str):
         logger.info(f"{filepath} is a NOT a pdf file.")
 
     return False
+
 
 def is_image(filepath: str):
     """
@@ -68,21 +70,22 @@ def purge_directory(dirpath: str):
         except Exception as e:
             print("Failed to delete %s. Reason: %s" % (file_path, e))
 
-def download_locally_if_s3_path(filepath: str, save_dir: str):
+
+def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
     """
 
     :return:
     """
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
-    is_s3_path = is_s3(filepath)
+    is_cloud_storage_path = is_cloud_storage(filepath)
 
-    # If s3 path, download to local for processing
-    if is_s3_path:
-        s3_parse_dict = parse_url(filepath)
-        local_path = load_from_s3_and_save(
-            obj=s3_parse_dict["key"],
-            bucket=s3_parse_dict["bucket"],
+    # If cloud storage path, download to local for processing
+    if is_cloud_storage_path:
+        cloud_storage_parse_dict = parse_url(filepath)
+        local_path = load_from_cloud_storage_and_save(
+            obj=cloud_storage_parse_dict["key"],
+            bucket=cloud_storage_parse_dict["bucket"],
             local_save_dir=save_dir,
         )
     else:
@@ -99,12 +102,16 @@ def pdf_to_image(
     output_folder: str = None,
     fmt: str = "png",
     cloud_storage="s3",
+    use_threading_to_upload=False,
 ):
     """
 
     :param pdfs:
     :return:
     """
+    cloud_storage_object_paths = []
+    cloud_storage_objects_kw_args = []
+
     if not output_folder:
         output_folder = settings.LOCAL_FILES_SAVE_DIR
 
@@ -117,32 +124,42 @@ def pdf_to_image(
     if not isinstance(images, list):
         images = [images]
 
+    if save_images_to_cloud:
+        datetime_prefix = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
+    else:
+        datetime_prefix = None
+
     if cloud_storage == "s3":
-
-        s3_object_paths = []
-
         # Save to S3 if save_images_to_cloud is True
-        if save_images_to_cloud:
-            s3_datetime_prefix = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
+        if datetime_prefix:
             for image in images:
-                s3_path = upload_to_s3(
-                    path=image,
-                    bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    prefix=f"{prefix}/{s3_datetime_prefix}",
-                    key=f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
-                    append_datetime=False,
-                )
-                s3_object_paths.append(s3_path)
+                kw_args = {
+                    "path": image,
+                    "bucket": settings.AWS_STORAGE_BUCKET_NAME,
+                    "prefix": f"{prefix}/{datetime_prefix}",
+                    "key": f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
+                    "append_datetime": False,
+                }
+                cloud_storage_objects_kw_args.append(kw_args)
 
-        if save_images_to_cloud and not len(s3_object_paths) == len(images):
-            logger.warning(
-                "Not all images got uploaded to S3. You might be missing data"
-            )
+                if not use_threading_to_upload:
+                    logger.info("Using threading to upload to cloud")
+                    s3_path = upload_to_cloud_storage(**kw_args)
+                    cloud_storage_object_paths.append(s3_path)
+                else:
+                    with ThreadPoolExecutor(max_workers=None,
+                                            thread_name_prefix="upload-images-to-cloud") as executor:
+                        executor.submit(upload_to_cloud_storage, kwargs=kw_args)
+
+    if save_images_to_cloud and not len(cloud_storage_object_paths) == len(images):
+        logger.warning(
+            "Not all images got uploaded to cloud storage. You might be missing data"
+        )
     else:
         logger.error("Other storage backends except S3 not implemented yet")
         raise NotImplementedError
 
-    return images, s3_object_paths
+    return images, cloud_storage_objects_kw_args
 
 
 def generate_text_from_ocr_output(
@@ -199,6 +216,7 @@ def generate_text_from_ocr_output(
 
     return text_join_delimiter.join(text_list)
 
+
 def build_tesseract_ocr_config(tsv_or_txt="tsv"):
     """
 
@@ -223,7 +241,9 @@ def build_tesseract_ocr_config(tsv_or_txt="tsv"):
     return ocr_config
 
 
-def ocr_image(imagepath: str, preprocess: bool = True, ocr_config = None, ocr_engine="tesseract"):
+def ocr_image(
+    imagepath: str, preprocess: bool = True, ocr_config=None, ocr_engine="tesseract"
+):
     """
 
     :param imagepath:
@@ -248,7 +268,7 @@ def ocr_image(imagepath: str, preprocess: bool = True, ocr_config = None, ocr_en
             image,
             config=(ocr_config),
             lang=ocr_language,
-            output_type='data.frame',
+            output_type="data.frame",
         )
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 

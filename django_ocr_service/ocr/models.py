@@ -11,14 +11,15 @@ from s3urls import parse_url
 import urllib
 
 from . import (
-    delete_objects_from_s3,
-    download_locally_if_s3_path,
+    delete_objects_from_cloud_storage,
+    download_locally_if_cloud_storage_path,
+    generate_cloud_storage_key,
     is_image,
     is_pdf,
-    is_s3,
+    is_cloud_storage,
     ocr_image,
     pdf_to_image,
-    purge_directory
+    purge_directory,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,12 +66,14 @@ class OCRInput(models.Model):
         :return:
         """
         if settings.DROP_PDF_POST_PROCESSING:
-            s3_parse_dict = is_s3(filepath)
-            if s3_parse_dict:
+            cloud_storage_parse_dict = is_cloud_storage(filepath)
+            if cloud_storage_parse_dict:
                 logger.info("Dropping input pdf")
-                delete_objects_from_s3(
-                    keys=s3_parse_dict["key"], bucket=s3_parse_dict["bucket"]
+                delete_objects_from_cloud_storage(
+                    keys=cloud_storage_parse_dict["key"],
+                    bucket=cloud_storage_parse_dict["bucket"],
                 )
+                logger.info(f"Input file {filepath} dropped")
 
     def do_ocr(self):
         """
@@ -88,10 +91,26 @@ class OCRInput(models.Model):
 
             filepath = urllib.parse.unquote(filepath)
 
-            local_filepath = download_locally_if_s3_path(filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR)
+            local_filepath = download_locally_if_cloud_storage_path(
+                filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
+            )
 
             if is_pdf(local_filepath):
-                image_filepaths, s3_object_paths = pdf_to_image(pdf_path=local_filepath)
+                image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
+                    pdf_path=local_filepath,
+                    use_threading_to_upload=settings.USE_THREADING_TO_UPLOAD_DELETE,
+                )
+                # Below line allows getting the upload paths even if upload to cloud storage
+                #  not finished due to threading workers still finishing their jobs
+                cloud_storage_object_paths = [
+                    generate_cloud_storage_key(
+                        path=kw_args["path"],
+                        key=kw_args["key"],
+                        prefix=kw_args["prefix"],
+                        append_datetime=kw_args["append_datetime"],
+                    )
+                    for kw_args in cloud_storage_objects_kw_args
+                ]
 
             elif is_image(local_filepath):
                 image_filepaths = [local_filepath]
@@ -101,9 +120,10 @@ class OCRInput(models.Model):
                 for index, image in enumerate(image_filepaths):
                     ocr_text = ocr_image(imagepath=image)
                     ocr_text_list.append(ocr_text)
-                    output_dict[s3_object_paths[index]] = ocr_text
+                    output_dict[cloud_storage_object_paths[index]] = ocr_text
+                    break
 
-                self.ocr_text = "\n".join(ocr_text)
+                self.ocr_text = "\n".join(ocr_text_list)
                 self.result_response = output_dict
 
         except Exception as exception:
@@ -112,7 +132,6 @@ class OCRInput(models.Model):
         else:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
             self.delete_input_file(filepath)
-
 
     def save(self, *args, **kwargs):
         """

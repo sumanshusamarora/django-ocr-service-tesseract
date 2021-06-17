@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ocr', '0001_ocr_initial_model'),
+        ("ocr", "0001_ocr_initial_model"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='ocrinput',
-            name='result_response',
+            model_name="ocrinput",
+            name="result_response",
             field=models.TextField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='ocrinput',
-            name='ocr_text',
+            model_name="ocrinput",
+            name="ocr_text",
             field=models.TextField(blank=True, null=True),
         ),
     ]
