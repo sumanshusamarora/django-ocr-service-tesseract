@@ -28,13 +28,13 @@ if not config.get("SECRET_KEY"):
     config["SECRET_KEY"] = uuid.uuid4().hex
 
 # DEBUG
-if not config.get("DEBUG"):
+if os.environ.get("DEBUG"):
+    config["DEBUG"] = ast.literal_eval(os.environ.get("DEBUG"))
+if config.get("DEBUG") is None:
     if "insecure" in config["SECRET_KEY"]:
         config["DEBUG"] = True
     else:
         config["DEBUG"] = False
-else:
-    config.get("DEBUG")
 
 if os.environ.get("AWS_ACCESS_KEY_ID"):
     config["AWS_ACCESS_KEY_ID"] = os.environ.get("AWS_ACCESS_KEY_ID")
@@ -51,10 +51,10 @@ if os.environ.get("AWS_REGION"):
 if not config.get("ALLOWED_HOSTS"):
     config["ALLOWED_HOSTS"] = "*"
 
+if os.environ.get("TOKEN_VALIDITY_IN_HOURS"):
+    config["TOKEN_VALIDITY_IN_HOURS"] = int(os.environ.get("TOKEN_VALIDITY_IN_HOURS"))
 if not config.get("TOKEN_VALIDITY_IN_HOURS"):
     config["TOKEN_VALIDITY_IN_HOURS"] = 1
-else:
-    config["TOKEN_VALIDITY_IN_HOURS"] = int(config["TOKEN_VALIDITY_IN_HOURS"])
 
 if not os.environ.get("DJANGO_SUPERUSER_USERNAME") and not config.get(
     "DJANGO_SUPERUSER_USERNAME"
@@ -109,11 +109,20 @@ if os.environ.get("DB_SCHEMA"):
         "options": f"-c search_path={os.environ.get('DB_SCHEMA')}"
     }
 
-
+# USE_THREADING_TO_UPLOAD_DELETE
 if os.environ.get("USE_THREADING_TO_UPLOAD_DELETE"):
-    config["USE_THREADING_TO_UPLOAD_DELETE"] = os.environ.get(
+    config["USE_THREADING_TO_UPLOAD_DELETE"] = ast.literal_eval(os.environ.get(
         "USE_THREADING_TO_UPLOAD_DELETE"
     )
-
-if not config.get("USE_THREADING_TO_UPLOAD_DELETE"):
+    )
+if config.get("USE_THREADING_TO_UPLOAD_DELETE") is None:
     config["USE_THREADING_TO_UPLOAD_DELETE"] = True
+
+# DROP_INPUT_FILE_POST_PROCESSING
+if os.environ.get("DROP_INPUT_FILE_POST_PROCESSING"):
+    config["DROP_INPUT_FILE_POST_PROCESSING"] = ast.literal_eval(os.environ.get(
+        "DROP_INPUT_FILE_POST_PROCESSING"
+    )
+    )
+if config.get("DROP_INPUT_FILE_POST_PROCESSING") is None:
+    config["DROP_INPUT_FILE_POST_PROCESSING"] = True

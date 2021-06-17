@@ -11,12 +11,10 @@ from s3urls import parse_url
 import urllib
 
 from . import (
-    delete_objects_from_cloud_storage,
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
     is_image,
     is_pdf,
-    is_cloud_storage,
     ocr_image,
     pdf_to_image,
     purge_directory,
@@ -59,22 +57,7 @@ class OCRInput(models.Model):
         if not self.file.name and not self.cloud_storage_url_or_uri:
             raise ValidationError("Cloud file path or file upload required")
 
-    def delete_input_file(self, filepath):
-        """
-        Delete input file post procesing
-        :return:
-        """
-        if settings.DROP_PDF_POST_PROCESSING:
-            cloud_storage_parse_dict = is_cloud_storage(filepath)
-            if cloud_storage_parse_dict:
-                logger.info("Dropping input pdf")
-                delete_objects_from_cloud_storage(
-                    keys=cloud_storage_parse_dict["key"],
-                    bucket=cloud_storage_parse_dict["bucket"],
-                )
-                logger.info(f"Input file {filepath} dropped")
-
-    def do_ocr(self):
+    def _do_ocr(self):
         """
         Perform OCR on input file
         :return:
@@ -120,7 +103,6 @@ class OCRInput(models.Model):
                     ocr_text = ocr_image(imagepath=image)
                     ocr_text_list.append(ocr_text)
                     output_dict[cloud_storage_object_paths[index]] = ocr_text
-                    break
 
                 self.ocr_text = "\n".join(ocr_text_list)
                 self.result_response = output_dict
@@ -130,7 +112,9 @@ class OCRInput(models.Model):
             raise exception
         else:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
-            self.delete_input_file(filepath)
+            # Drop input file post processing
+            if settings.DROP_INPUT_FILE_POST_PROCESSING:
+                self.file.storage.delete(name=self.file.name)
 
     def save(self, *args, **kwargs):
         """
@@ -152,11 +136,11 @@ class OCRInput(models.Model):
 
         super(OCRInput, self).save()
 
-        self.do_ocr()
+        self._do_ocr()
 
         super(OCRInput, self).save()
 
-    def __str__(self):
+    def __str__(self): # pragma: no cover
         """
 
         :return:
