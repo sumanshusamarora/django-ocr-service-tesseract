@@ -45,4 +45,3 @@ def create_auth_token(sender, instance=None, **kwargs):
         else:
             logger.info(f"Token already exists for user {obj.user}")
     return obj.key
-

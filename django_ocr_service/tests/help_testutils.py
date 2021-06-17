@@ -15,12 +15,14 @@ from ocr.s3_storage_utils import (
 from ocr.token import create_auth_token
 
 
-username = 'testuser'
-password = '12345'
+username = "testuser"
+password = "12345"
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TESTDATA_DIR = os.path.join(TEST_DIR, "testdata")
 TESTFILE_PDF_PATH = os.path.join(TESTDATA_DIR, "sample-test-pdf.pdf")
+TESTFILE_IMAGE_PATH = os.path.join(TESTDATA_DIR, "test-image.png")
+
 
 def create_user_login_generate_token():
     """
@@ -35,6 +37,7 @@ def create_user_login_generate_token():
     token = create_auth_token(sender=User, instance=user)
     return django_client, user, token
 
+
 def create_rest_user_login_generate_token():
     """
 
@@ -48,10 +51,10 @@ def create_rest_user_login_generate_token():
     token = create_auth_token(sender=User, instance=user)
     return rest_client, user, token
 
-class UploadDeleteTestFile:
-    """
 
-    """
+class UploadDeleteTestFile:
+    """ """
+
     def __init__(self, filepath=None, bucket=None):
         """
 

@@ -147,8 +147,9 @@ def pdf_to_image(
                     s3_path = upload_to_cloud_storage(**kw_args)
                     cloud_storage_object_paths.append(s3_path)
                 else:
-                    with ThreadPoolExecutor(max_workers=None,
-                                            thread_name_prefix="upload-images-to-cloud") as executor:
+                    with ThreadPoolExecutor(
+                        max_workers=None, thread_name_prefix="upload-images-to-cloud"
+                    ) as executor:
                         executor.submit(upload_to_cloud_storage, kwargs=kw_args)
 
     if save_images_to_cloud and not len(cloud_storage_object_paths) == len(images):

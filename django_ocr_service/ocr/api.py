@@ -14,6 +14,7 @@ from .models import OCRInput
 from .serializers import OCRInputSerializer
 from .token import create_auth_token
 
+
 class GenerateToken(APIView):
     """
     API view to generate token
@@ -36,6 +37,7 @@ class GenerateToken(APIView):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
+
 class GenerateOcrFromPDF(APIView):
     """ """
 
@@ -50,7 +52,7 @@ class GenerateOcrFromPDF(APIView):
         """
         if isinstance(request.data, QueryDict):
             data = request.data.dict()
-        else: # Handles test case when data is passed as dict
+        else:  # Handles test case when data is passed as dict
             data = request.data
 
         ocr_input_serializer_obj = OCRInputSerializer(data=data)
@@ -67,5 +69,6 @@ class GenerateOcrFromPDF(APIView):
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 )
         else:
-            return Response(data=ocr_input_serializer_obj.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                data=ocr_input_serializer_obj.errors, status=status.HTTP_400_BAD_REQUEST
+            )

@@ -111,18 +111,16 @@ if os.environ.get("DB_SCHEMA"):
 
 # USE_THREADING_TO_UPLOAD_DELETE
 if os.environ.get("USE_THREADING_TO_UPLOAD_DELETE"):
-    config["USE_THREADING_TO_UPLOAD_DELETE"] = ast.literal_eval(os.environ.get(
-        "USE_THREADING_TO_UPLOAD_DELETE"
-    )
+    config["USE_THREADING_TO_UPLOAD_DELETE"] = ast.literal_eval(
+        os.environ.get("USE_THREADING_TO_UPLOAD_DELETE")
     )
 if config.get("USE_THREADING_TO_UPLOAD_DELETE") is None:
     config["USE_THREADING_TO_UPLOAD_DELETE"] = True
 
 # DROP_INPUT_FILE_POST_PROCESSING
 if os.environ.get("DROP_INPUT_FILE_POST_PROCESSING"):
-    config["DROP_INPUT_FILE_POST_PROCESSING"] = ast.literal_eval(os.environ.get(
-        "DROP_INPUT_FILE_POST_PROCESSING"
-    )
+    config["DROP_INPUT_FILE_POST_PROCESSING"] = ast.literal_eval(
+        os.environ.get("DROP_INPUT_FILE_POST_PROCESSING")
     )
 if config.get("DROP_INPUT_FILE_POST_PROCESSING") is None:
     config["DROP_INPUT_FILE_POST_PROCESSING"] = True

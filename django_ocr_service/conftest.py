@@ -7,6 +7,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from django.conf import settings
 from common_utils import get_schema_name
 
+
 def run_sql(sql, database):
     """
 
@@ -25,6 +26,7 @@ def run_sql(sql, database):
     cur = conn.cursor()
     cur.execute(sql)
     conn.close()
+
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_db_blocker, django_db_createdb):

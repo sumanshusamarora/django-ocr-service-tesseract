@@ -27,6 +27,7 @@ class OCRInput(models.Model):
     """
     Model to enable OCR input API and UI utility
     """
+
     guid = models.CharField(max_length=100, editable=False)
     file = models.FileField(
         upload_to="input_pdfs",
@@ -96,6 +97,7 @@ class OCRInput(models.Model):
 
             elif is_image(local_filepath):
                 image_filepaths = [local_filepath]
+                cloud_storage_object_paths = [self.file.name]
 
             if image_filepaths:
                 output_dict = dict()
@@ -140,7 +142,7 @@ class OCRInput(models.Model):
 
         super(OCRInput, self).save()
 
-    def __str__(self): # pragma: no cover
+    def __str__(self):  # pragma: no cover
         """
 
         :return:

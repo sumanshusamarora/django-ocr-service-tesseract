@@ -12,16 +12,20 @@ from .help_testutils import create_user_login_generate_token
 
 pytestmark = pytest.mark.django_db()
 
-class TestTokenGeneration:
-    """
 
-    """
+class TestTokenGeneration:
+    """ """
+
     def setup_method(self):
         """
 
         :return:
         """
-        self.django_client, self.user, self.token_true = create_user_login_generate_token()
+        (
+            self.django_client,
+            self.user,
+            self.token_true,
+        ) = create_user_login_generate_token()
 
     def test_create_auth_token(self):
         """
@@ -67,4 +71,3 @@ class TestTokenGeneration:
         token_regenerated = regenerated_expired_token(token_obj).key
         token_new = ExpiringToken.objects.get(user=self.user).key
         assert self.token_true == token_old and token_new == token_regenerated
-
