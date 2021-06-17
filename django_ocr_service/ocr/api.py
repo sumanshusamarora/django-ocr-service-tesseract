@@ -55,8 +55,14 @@ class GenerateOCR(APIView):
         else:  # Handles test case when data is passed as dict
             data = request.data
 
+        if not data:
+            return Response(
+                data={"Error": "File input required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         ocr_input_serializer_obj = OCRInputSerializer(data=data)
-        if ocr_input_serializer_obj.is_valid():
+        if ocr_input_serializer_obj.is_valid(raise_exception=True):
             try:
                 model_obj = OCRInput.objects.create(**data)
                 return Response(
