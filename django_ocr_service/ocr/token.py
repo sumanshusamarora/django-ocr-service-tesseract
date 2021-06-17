@@ -8,12 +8,6 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django_expiring_token.models import ExpiringToken
-import pytz
-from rest_framework.authentication import BasicAuthentication
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
 
 logger = logging.getLogger(__name__)
 
@@ -52,25 +46,3 @@ def create_auth_token(sender, instance=None, **kwargs):
             logger.info(f"Token already exists for user {obj.user}")
     return obj.key
 
-
-class GenerateToken(APIView):
-    """
-    API view to generate token
-    """
-
-    authentication_classes = [BasicAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        """
-        Rest post method
-
-        :return:
-        """
-        token = create_auth_token(
-            sender=settings.AUTH_USER_MODEL, instance=request.user, created=True
-        )
-        if token:
-            return Response(data={"token": token}, status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from ocr.api import GenerateOcrFromPDF
-from ocr.token import GenerateToken
+from ocr.api import GenerateToken
 
 urlpatterns = [
     path("admin/", admin.site.urls),

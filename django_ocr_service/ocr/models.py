@@ -29,7 +29,6 @@ class OCRInput(models.Model):
     """
     Model to enable OCR input API and UI utility
     """
-
     guid = models.CharField(max_length=100, editable=False)
     file = models.FileField(
         upload_to="input_pdfs",
