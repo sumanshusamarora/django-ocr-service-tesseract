@@ -17,6 +17,7 @@ dependencies:
   - pyyaml
   - black
   - opencv
+  - pytest-cov
   - pip:
       - django-expiring-token
       - django-storages
