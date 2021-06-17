@@ -39,7 +39,9 @@ def set_image_dpi(file_path):
     im = Image.open(file_path)
     size = get_size_of_scaled_image(im)
     im_resized = im.resize(size, Image.ANTIALIAS)
-    temp_file = tempfile.NamedTemporaryFile(delete=False, dir=settings.LOCAL_FILES_SAVE_DIR, suffix=".png")
+    temp_file = tempfile.NamedTemporaryFile(
+        delete=False, dir=settings.LOCAL_FILES_SAVE_DIR, suffix=".png"
+    )
     temp_filename = temp_file.name
     im_resized.save(temp_filename, dpi=(300, 300))
     return temp_filename

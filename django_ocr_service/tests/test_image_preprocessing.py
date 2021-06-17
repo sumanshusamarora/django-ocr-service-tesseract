@@ -19,10 +19,10 @@ from .help_testutils import TESTFILE_IMAGE_PATH
 
 pytestmark = pytest.mark.django_db()
 
-class TestImagePreprocessing:
-    """
 
-    """
+class TestImagePreprocessing:
+    """ """
+
     def setup_method(self):
         """
 
@@ -37,7 +37,10 @@ class TestImagePreprocessing:
         """
         orig_size = self.image.size
         scale_size = get_size_of_scaled_image(self.image)
-        assert scale_size[0] > orig_size[0] and scale_size == (settings.IMAGE_SIZE, orig_size[1]*(scale_size[0]/orig_size[0]))
+        assert scale_size[0] > orig_size[0] and scale_size == (
+            settings.IMAGE_SIZE,
+            orig_size[1] * (scale_size[0] / orig_size[0]),
+        )
 
     def test_set_image_dpi(self):
         """
@@ -55,7 +58,12 @@ class TestImagePreprocessing:
         """
         img = cv2.imread(TESTFILE_IMAGE_PATH, 0)
         filtered = cv2.adaptiveThreshold(
-            img.astype(np.uint8), 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 41, 3
+            img.astype(np.uint8),
+            255,
+            cv2.ADAPTIVE_THRESH_MEAN_C,
+            cv2.THRESH_BINARY,
+            41,
+            3,
         )
         kernel = np.ones((1, 1), np.uint8)
         opening = cv2.morphologyEx(filtered, cv2.MORPH_OPEN, kernel)
@@ -77,4 +85,7 @@ class TestImagePreprocessing:
         :return:
         """
         return_image = preprocess_image_for_ocr(TESTFILE_IMAGE_PATH)
-        assert return_image.shape == (600, 1800) and return_image.mean() == 217.01633333333334
+        assert (
+            return_image.shape == (600, 1800)
+            and return_image.mean() == 217.01633333333334
+        )

@@ -36,7 +36,7 @@ def is_pdf(filepath: str):
         doc = PdfFileReader(open(filepath, "rb"))
         logger.info(f"{filepath} is a pdf file.")
         return doc.numPages > 0
-    except PyPDF2.utils.PdfReadError:
+    except:
         logger.info(f"{filepath} is a NOT a pdf file.")
 
     return False
@@ -48,11 +48,13 @@ def is_image(filepath: str):
     :return:
     """
     try:
-        _ = cv2.imread(filepath)
-        return True
+        image_array = cv2.imread(filepath)
+        if image_array is not None:
+            return True
     except:
-        logger.info(f"{filepath} is a NOT a image file.")
+        pass
 
+    logger.info(f"{filepath} is a NOT a image file.")
     return False
 
 
