@@ -22,6 +22,7 @@ TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 TESTDATA_DIR = os.path.join(TEST_DIR, "testdata")
 TESTFILE_PDF_PATH = os.path.join(TESTDATA_DIR, "sample-test-pdf.pdf")
 TESTFILE_IMAGE_PATH = os.path.join(TESTDATA_DIR, "test-image.png")
+TEST_DATAFRAME = os.path.join(TESTDATA_DIR, "ocr_dataframe.pickle")
 
 
 def create_user_login_generate_token():

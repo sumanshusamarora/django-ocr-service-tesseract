@@ -295,5 +295,7 @@ def ocr_image(
             output_type="data.frame",
         )
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
+    else:
+        raise NotImplementedError("No other OCR engine except tesseract is supported currently")
 
     return ocr_text

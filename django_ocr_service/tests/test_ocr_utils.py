@@ -9,6 +9,7 @@ import shutil
 import tempfile
 
 from django.conf import settings
+import pandas as pd
 import pdf2image
 import pytest
 
@@ -29,6 +30,7 @@ from ocr.s3_storage_utils import (
 from .help_testutils import (
     TESTFILE_IMAGE_PATH,
     TESTFILE_PDF_PATH,
+    TEST_DATAFRAME,
     TEST_DIR,
     UploadDeleteTestFile,
 )
@@ -407,3 +409,44 @@ def test_build_tesseract_ocr_config_setting(settings):
     settings.OCR_PSM = 1
     settings.OCR_TESSDATA_DIR = "something"
     assert build_tesseract_ocr_config(tsv_or_txt="txt") == "txt --oem 4 --psm 1 --tessdata-dir something"
+
+def test_ocr_image():
+    """
+
+    :return:
+    """
+    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=True, ocr_config=None, ocr_engine = "tesseract")
+    assert isinstance(out, str)
+
+def test_ocr_image_no_preprocess():
+    """
+
+    :return:
+    """
+    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config=None, ocr_engine = "tesseract")
+    assert isinstance(out, str)
+
+def test_ocr_image_manual_ocr_config():
+    """
+
+    :return:
+    """
+    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config="--psm 4 --oem 3", ocr_engine = "tesseract")
+    assert isinstance(out, str)
+
+def test_ocr_image_manual_ocr_config():
+    """
+
+    :return:
+    """
+    with pytest.raises((NotImplementedError)):
+        _ = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config="--psm 4", ocr_engine="something")
+
+def test_generate_text_from_ocr_output():
+    """
+
+    :return:
+    """
+    dataframe = pd.read_pickle(TEST_DATAFRAME)
+    text = generate_text_from_ocr_output(dataframe)
+    assert isinstance(text, str)
