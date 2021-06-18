@@ -20,6 +20,7 @@ from .help_testutils import (
     TESTFILE_IMAGE_PATH,
     TESTFILE_PDF_PATH,
     TEST_DIR,
+    UploadDeleteTestFile,
 )
 
 
@@ -91,3 +92,46 @@ def test_purge_directory():
     shutil.rmtree(dir_path)
     assert before_purge == random_number and after_purge == 0 and before_purge > 0
 
+def test_download_locally_if_cloud_storage_path():
+    """
+
+    :return:
+    """
+    # Setup
+    local_dir = "/tmp/testdir/"
+    upload_delete_obj = UploadDeleteTestFile()
+    cloud_path = upload_delete_obj.upload_test_file_to_cloud_storage()
+    local_filepath = os.path.join(local_dir, os.path.split(upload_delete_obj.filepath)[-1])
+    before_download_file_exists = os.path.isfile(local_filepath)
+
+    # Test
+    download_locally_if_cloud_storage_path(filepath=cloud_path, save_dir=local_dir)
+    after_download_file_exists = os.path.isfile(local_filepath)
+
+    # Teardown
+    if after_download_file_exists:
+        os.remove(local_filepath)
+
+    # Assert
+    assert not before_download_file_exists and after_download_file_exists
+
+def test_download_locally_if_cloud_storage_path_local_file():
+    """
+
+    :return:
+    """
+    # Setup
+    local_dir = "/tmp/testdir/"
+    local_filepath = os.path.join(local_dir, os.path.split(TESTFILE_PDF_PATH)[-1])
+    before_download_file_exists = os.path.isfile(local_filepath)
+
+    # Test
+    download_locally_if_cloud_storage_path(filepath=TESTFILE_PDF_PATH, save_dir=local_dir)
+    after_download_file_exists = os.path.isfile(local_filepath)
+
+    # Teardown
+    if after_download_file_exists:
+        os.remove(local_filepath)
+
+    # Assert
+    assert not before_download_file_exists and not after_download_file_exists and TESTFILE_PDF_PATH

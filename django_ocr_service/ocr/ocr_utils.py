@@ -1,7 +1,6 @@
 """
 Common OCR utils
 """
-from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 import os
 import logging
@@ -101,26 +100,6 @@ def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
 
     return local_path
 
-def upload_using_threading(cloud_storage_objects_kw_args):
-    """
-
-    :return:
-    """
-    storage_path_list = []
-
-    with ThreadPoolExecutor(
-            max_workers=None, thread_name_prefix="upload-images-to-cloud"
-    ) as executor:
-        futures = []
-        for kw_args in cloud_storage_objects_kw_args:
-            futures.append(executor.submit(upload_to_cloud_storage, **kw_args))
-
-        for future in futures:
-            storage_path_list.append(future.result())
-
-    return storage_path_list
-
-
 
 def pdf_to_image(
     pdf_path: str,
@@ -178,13 +157,11 @@ def pdf_to_image(
 
                 logging.info("Starting image upload")
                 if use_async_to_upload:
-                    s3_path = sync_to_async(upload_to_cloud_storage, thread_sensitive=False)(**kw_args)
+                    cloud_storage_path = sync_to_async(upload_to_cloud_storage, thread_sensitive=False)(**kw_args)
                 else:
-                    s3_path = upload_to_cloud_storage(**kw_args)
+                    cloud_storage_path = upload_to_cloud_storage(**kw_args)
 
-                cloud_storage_object_paths.append(s3_path)
-            else:
-                cloud_storage_object_paths = upload_using_threading(cloud_storage_objects_kw_args=cloud_storage_objects_kw_args)
+                cloud_storage_object_paths.append(cloud_storage_path)
 
 
             if not len(cloud_storage_object_paths):
