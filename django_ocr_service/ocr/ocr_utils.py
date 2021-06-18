@@ -18,7 +18,7 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
-urllib3_logger = logging.getLogger('urllib3')
+urllib3_logger = logging.getLogger("urllib3")
 urllib3_logger.setLevel(logging.CRITICAL)
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
@@ -103,14 +103,14 @@ def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
 
 def pdf_to_image(
     pdf_path: str,
+    output_folder: str = None,
     save_images_to_cloud=True,
     prefix: str = "media",
     dpi: int = 300,
-    output_folder: str = None,
     fmt: str = "png",
     cloud_storage: str = "s3",
     use_async_to_upload: bool = False,
-    append_date: bool = True,
+    append_datetime: bool = True,
 ):
     """
 
@@ -120,7 +120,10 @@ def pdf_to_image(
     cloud_storage_object_paths = []
     cloud_storage_objects_kw_args = []
 
-    if append_date:
+    if not prefix:
+        prefix = "."
+
+    if append_datetime:
         logging.info("Append date is True, adding datetime to prefix")
         prefix = f"{prefix}/{datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')}"
 
@@ -157,22 +160,19 @@ def pdf_to_image(
 
                 logging.info("Starting image upload")
                 if use_async_to_upload:
-                    cloud_storage_path = sync_to_async(upload_to_cloud_storage, thread_sensitive=False)(**kw_args)
+                    cloud_storage_path = sync_to_async(
+                        upload_to_cloud_storage, thread_sensitive=False
+                    )(**kw_args)
                 else:
                     cloud_storage_path = upload_to_cloud_storage(**kw_args)
 
                 cloud_storage_object_paths.append(cloud_storage_path)
 
-
             if not len(cloud_storage_object_paths):
-                logger.warning(
-                    "Image upload failed"
-                )
+                logger.warning("Image upload failed")
 
             elif not len(cloud_storage_object_paths) == len(images):
-                logger.warning(
-                    "Not all images got uploaded to cloud storage"
-                )
+                logger.warning("Not all images got uploaded to cloud storage")
         else:
             logger.error("Other storage backends except S3 not implemented yet")
             raise NotImplementedError

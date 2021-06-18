@@ -2,12 +2,12 @@
 Tests for ocr utils. Most of these methods have already been tested as part of api and model testing.
 This module contains atomic tests for each method (where possible)
 """
-from django.conf import settings
 import os
 import random
 import shutil
 import tempfile
 
+from django.conf import settings
 import pytest
 
 from ocr.ocr_utils import (
@@ -15,7 +15,9 @@ from ocr.ocr_utils import (
     is_image,
     purge_directory,
     download_locally_if_cloud_storage_path,
+    pdf_to_image,
 )
+from ocr.s3_storage_utils import delete_objects_from_cloud_storage
 from .help_testutils import (
     TESTFILE_IMAGE_PATH,
     TESTFILE_PDF_PATH,
@@ -92,6 +94,7 @@ def test_purge_directory():
     shutil.rmtree(dir_path)
     assert before_purge == random_number and after_purge == 0 and before_purge > 0
 
+
 def test_download_locally_if_cloud_storage_path():
     """
 
@@ -101,7 +104,9 @@ def test_download_locally_if_cloud_storage_path():
     local_dir = "/tmp/testdir/"
     upload_delete_obj = UploadDeleteTestFile()
     cloud_path = upload_delete_obj.upload_test_file_to_cloud_storage()
-    local_filepath = os.path.join(local_dir, os.path.split(upload_delete_obj.filepath)[-1])
+    local_filepath = os.path.join(
+        local_dir, os.path.split(upload_delete_obj.filepath)[-1]
+    )
     before_download_file_exists = os.path.isfile(local_filepath)
 
     # Test
@@ -115,6 +120,7 @@ def test_download_locally_if_cloud_storage_path():
     # Assert
     assert not before_download_file_exists and after_download_file_exists
 
+
 def test_download_locally_if_cloud_storage_path_local_file():
     """
 
@@ -126,7 +132,9 @@ def test_download_locally_if_cloud_storage_path_local_file():
     before_download_file_exists = os.path.isfile(local_filepath)
 
     # Test
-    download_locally_if_cloud_storage_path(filepath=TESTFILE_PDF_PATH, save_dir=local_dir)
+    download_locally_if_cloud_storage_path(
+        filepath=TESTFILE_PDF_PATH, save_dir=local_dir
+    )
     after_download_file_exists = os.path.isfile(local_filepath)
 
     # Teardown
@@ -134,4 +142,120 @@ def test_download_locally_if_cloud_storage_path_local_file():
         os.remove(local_filepath)
 
     # Assert
-    assert not before_download_file_exists and not after_download_file_exists and TESTFILE_PDF_PATH
+    assert (
+        not before_download_file_exists
+        and not after_download_file_exists
+        and TESTFILE_PDF_PATH
+    )
+
+
+def test_pdf_to_image_simple_tc():
+    """
+
+    :return:
+    """
+    # Setup
+    local_dir = "/tmp/testdir"
+
+    # Test
+    local_image_fps, cloud_fps = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        output_folder=local_dir,
+        save_images_to_cloud=False,
+    )
+
+    # Teardown
+    for impath in local_image_fps:
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    assert (
+        len(local_image_fps) == 2
+        and not cloud_fps
+        and os.path.split(local_image_fps[0])[0] == local_dir
+    )
+
+
+def test_pdf_to_image_simple_default_folder():
+    """
+
+    :return:
+    """
+    # Test
+    local_image_fps, cloud_fps = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        save_images_to_cloud=False,
+    )
+    # Teardown
+    for impath in local_image_fps:
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    assert (
+        len(local_image_fps) == 2
+        and not cloud_fps
+        and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
+    )
+
+
+def test_pdf_to_image_save_to_cloud_no_prefix():
+    """
+
+    :return:
+    """
+    local_image_fps, cloud_kw_args = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        save_images_to_cloud=True,
+        append_datetime=False,
+        prefix=None,
+    )
+
+    # Teardown
+    for impath in local_image_fps:
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    delete_count = delete_objects_from_cloud_storage(
+        keys=[cloud_kw["key"] for cloud_kw in cloud_kw_args],
+        bucket=cloud_kw_args[0]["bucket"],
+    )
+
+    assert (
+        len(local_image_fps) == 2
+        and len(cloud_kw_args) == 2
+        and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
+        and delete_count == 2
+    )
+
+
+def test_pdf_to_image_save_to_cloud_with_custom_prefix():
+    """
+
+    :return:
+    """
+    prefix = "testfile"
+    local_image_fps, cloud_kw_args = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        save_images_to_cloud=True,
+        prefix=prefix,
+    )
+
+    # Teardown
+    for impath in local_image_fps:
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    delete_count = delete_objects_from_cloud_storage(
+        keys=[cloud_kw["key"] for cloud_kw in cloud_kw_args],
+        bucket=cloud_kw_args[0]["bucket"],
+    )
+
+    import pdb; pdb.set_trace()
+
+    assert (
+        len(local_image_fps) == 2
+        and len(cloud_kw_args) == 2
+        and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
+        and delete_count == 2
+        and cloud_kw_args[0]["key"].startswith(prefix)
+    )

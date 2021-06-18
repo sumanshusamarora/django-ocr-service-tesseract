@@ -46,12 +46,16 @@ def delete_objects_from_cloud_storage(keys, bucket: str):
     if not isinstance(keys, list):
         keys = [keys]
 
+    delete_count = 0
     for obj in keys:
         try:
             s3_client.delete_object(Bucket=bucket, Key=obj)
+            delete_count += 1
             logger.info(f"Dropped s3 object {obj}")
         except Exception as exception:
             logger.error(exception)
+
+    return delete_count
 
 
 def load_from_cloud_storage_and_save(obj: str, bucket: str, local_save_dir: str):

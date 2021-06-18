@@ -8,36 +8,78 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='OCRInput',
+            name="OCRInput",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('guid', models.CharField(editable=False, max_length=100)),
-                ('file', models.FileField(blank=True, help_text='File or Cloud storage URL/URI required', null=True, upload_to='input_files')),
-                ('cloud_storage_url_or_uri', models.CharField(blank=True, help_text='File or Cloud storage URL/URI required', max_length=1000, null=True)),
-                ('bucket_name', models.CharField(blank=True, max_length=255, null=True)),
-                ('filename', models.CharField(blank=True, max_length=255, null=True)),
-                ('ocr_config', models.CharField(blank=True, max_length=255, null=True)),
-                ('ocr_language', models.CharField(blank=True, max_length=50, null=True)),
-                ('ocr_text', models.TextField(blank=True, null=True)),
-                ('result_response', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('modified_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("guid", models.CharField(editable=False, max_length=100)),
+                (
+                    "file",
+                    models.FileField(
+                        blank=True,
+                        help_text="File or Cloud storage URL/URI required",
+                        null=True,
+                        upload_to="input_files",
+                    ),
+                ),
+                (
+                    "cloud_storage_url_or_uri",
+                    models.CharField(
+                        blank=True,
+                        help_text="File or Cloud storage URL/URI required",
+                        max_length=1000,
+                        null=True,
+                    ),
+                ),
+                (
+                    "bucket_name",
+                    models.CharField(blank=True, max_length=255, null=True),
+                ),
+                ("filename", models.CharField(blank=True, max_length=255, null=True)),
+                ("ocr_config", models.CharField(blank=True, max_length=255, null=True)),
+                (
+                    "ocr_language",
+                    models.CharField(blank=True, max_length=50, null=True),
+                ),
+                ("ocr_text", models.TextField(blank=True, null=True)),
+                ("result_response", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("modified_at", models.DateTimeField(auto_now=True)),
             ],
         ),
         migrations.CreateModel(
-            name='OCROutput',
+            name="OCROutput",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image_path', models.CharField(max_length=1000)),
-                ('text', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('modified_at', models.DateTimeField(auto_now=True)),
-                ('guid', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ocr.ocrinput')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image_path", models.CharField(max_length=1000)),
+                ("text", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("modified_at", models.DateTimeField(auto_now=True)),
+                (
+                    "guid",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="ocr.ocrinput"
+                    ),
+                ),
             ],
         ),
     ]

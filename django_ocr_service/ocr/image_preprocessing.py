@@ -11,6 +11,7 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
 def get_size_of_scaled_image(im):
     """
     Return resize scale

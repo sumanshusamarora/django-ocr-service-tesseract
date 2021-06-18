@@ -84,10 +84,11 @@ class OCRInput(models.Model):
         :return:
         """
         for key, val in output_dict.items():
-            OCROutput.objects.create(guid=self,
-                                     image_path=key,
-                                     text=val,
-                                     )
+            OCROutput.objects.create(
+                guid=self,
+                image_path=key,
+                text=val,
+            )
 
     def _do_ocr(self):
         """
@@ -157,7 +158,9 @@ class OCRInput(models.Model):
                     self._delete_input_file()
                     logger.info("Input file deleted")
                 except:
-                    logger.warning("Error dropping input file. Does the application have access to location?")
+                    logger.warning(
+                        "Error dropping input file. Does the application have access to location?"
+                    )
 
     def save(self, *args, **kwargs):
         """
@@ -191,7 +194,6 @@ class OCRInput(models.Model):
         return f'GUID: {self.guid} || Bucket: {self.bucket_name} || Last Modified At: {self.modified_at.strftime("%Y-%m-%d %H:%M:%S")}'
 
 
-
 class OCROutput(models.Model):
     """
     Model to show OCR Output
@@ -209,7 +211,9 @@ class OCROutput(models.Model):
         :return:
         """
         if not is_cloud_storage(self.image_path):
-            self.image_path = s3urls.build_url('s3', self.guid.bucket_name, self.image_path)
+            self.image_path = s3urls.build_url(
+                "s3", self.guid.bucket_name, self.image_path
+            )
 
         super(OCROutput, self).save(*args, **kwargs)
 

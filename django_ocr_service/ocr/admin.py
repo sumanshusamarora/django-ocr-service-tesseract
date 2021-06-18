@@ -6,6 +6,7 @@ from .models import *
 class OCRInputAdmin(admin.ModelAdmin):
     pass
 
+
 @admin.register(OCROutput)
 class OCROutputAdmin(admin.ModelAdmin):
     pass
