@@ -278,6 +278,7 @@ def test_pdf_to_image_save_to_cloud_with_custom_prefix():
         and cloud_stroage_paths[0].startswith(prefix)
     )
 
+
 def test_pdf_to_image_save_to_cloud_append_datetime():
     """
 
@@ -318,6 +319,7 @@ def test_pdf_to_image_save_to_cloud_append_datetime():
         and delete_count == 2
         and datetime.now().date().__str__() in cloud_stroage_paths[0]
     )
+
 
 def test_pdf_to_image_save_to_cloud_async():
     """
@@ -360,11 +362,11 @@ def test_pdf_to_image_save_to_cloud_async():
         and delete_count == 2
     )
 
+
 def test_pdf_to_image_pass_image():
     """
 
     :return:
     """
     with pytest.raises(pdf2image.exceptions.PDFPageCountError):
-        pdf_to_image(
-            pdf_path=TESTFILE_IMAGE_PATH)
+        pdf_to_image(pdf_path=TESTFILE_IMAGE_PATH)
