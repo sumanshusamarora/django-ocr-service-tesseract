@@ -2,12 +2,14 @@
 Tests for ocr utils. Most of these methods have already been tested as part of api and model testing.
 This module contains atomic tests for each method (where possible)
 """
+from datetime import datetime
 import os
 import random
 import shutil
 import tempfile
 
 from django.conf import settings
+import pdf2image
 import pytest
 
 from ocr.ocr_utils import (
@@ -17,7 +19,10 @@ from ocr.ocr_utils import (
     download_locally_if_cloud_storage_path,
     pdf_to_image,
 )
-from ocr.s3_storage_utils import delete_objects_from_cloud_storage
+from ocr.s3_storage_utils import (
+    delete_objects_from_cloud_storage,
+    generate_cloud_storage_key,
+)
 from .help_testutils import (
     TESTFILE_IMAGE_PATH,
     TESTFILE_PDF_PATH,
@@ -233,29 +238,133 @@ def test_pdf_to_image_save_to_cloud_with_custom_prefix():
 
     :return:
     """
+    # Setup
     prefix = "testfile"
+
+    # Test
     local_image_fps, cloud_kw_args = pdf_to_image(
         pdf_path=TESTFILE_PDF_PATH,
         save_images_to_cloud=True,
         prefix=prefix,
+        append_datetime=False,
     )
 
     # Teardown
-    for impath in local_image_fps:
+    cloud_stroage_paths = []
+    for index, impath in enumerate(local_image_fps):
+        cloud_stroage_paths.append(
+            generate_cloud_storage_key(
+                path=impath,
+                key=cloud_kw_args[index]["key"],
+                prefix=cloud_kw_args[index]["prefix"],
+                append_datetime=cloud_kw_args[index]["append_datetime"],
+            )
+        )
+
         if os.path.isfile(impath):
             os.remove(impath)
 
     delete_count = delete_objects_from_cloud_storage(
-        keys=[cloud_kw["key"] for cloud_kw in cloud_kw_args],
+        keys=[cloud_path for cloud_path in cloud_stroage_paths],
         bucket=cloud_kw_args[0]["bucket"],
     )
 
-    import pdb; pdb.set_trace()
-
+    # Assert
     assert (
         len(local_image_fps) == 2
         and len(cloud_kw_args) == 2
         and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
         and delete_count == 2
-        and cloud_kw_args[0]["key"].startswith(prefix)
+        and cloud_stroage_paths[0].startswith(prefix)
     )
+
+def test_pdf_to_image_save_to_cloud_append_datetime():
+    """
+
+    :return:
+    """
+    # Test
+    local_image_fps, cloud_kw_args = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        save_images_to_cloud=True,
+        append_datetime=True,
+    )
+
+    # Teardown
+    cloud_stroage_paths = []
+    for index, impath in enumerate(local_image_fps):
+        cloud_stroage_paths.append(
+            generate_cloud_storage_key(
+                path=impath,
+                key=cloud_kw_args[index]["key"],
+                prefix=cloud_kw_args[index]["prefix"],
+                append_datetime=cloud_kw_args[index]["append_datetime"],
+            )
+        )
+
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    delete_count = delete_objects_from_cloud_storage(
+        keys=[cloud_path for cloud_path in cloud_stroage_paths],
+        bucket=cloud_kw_args[0]["bucket"],
+    )
+
+    # Assert
+    assert (
+        len(local_image_fps) == 2
+        and len(cloud_kw_args) == 2
+        and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
+        and delete_count == 2
+        and datetime.now().date().__str__() in cloud_stroage_paths[0]
+    )
+
+def test_pdf_to_image_save_to_cloud_async():
+    """
+
+    :return:
+    """
+    # Test
+    local_image_fps, cloud_kw_args = pdf_to_image(
+        pdf_path=TESTFILE_PDF_PATH,
+        save_images_to_cloud=True,
+        append_datetime=False,
+        use_async_to_upload=True,
+    )
+
+    # Teardown
+    cloud_stroage_paths = []
+    for index, impath in enumerate(local_image_fps):
+        cloud_stroage_paths.append(
+            generate_cloud_storage_key(
+                path=impath,
+                key=cloud_kw_args[index]["key"],
+                prefix=cloud_kw_args[index]["prefix"],
+                append_datetime=cloud_kw_args[index]["append_datetime"],
+            )
+        )
+
+        if os.path.isfile(impath):
+            os.remove(impath)
+
+    delete_count = delete_objects_from_cloud_storage(
+        keys=[cloud_path for cloud_path in cloud_stroage_paths],
+        bucket=cloud_kw_args[0]["bucket"],
+    )
+
+    # Assert
+    assert (
+        len(local_image_fps) == 2
+        and len(cloud_kw_args) == 2
+        and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
+        and delete_count == 2
+    )
+
+def test_pdf_to_image_pass_image():
+    """
+
+    :return:
+    """
+    with pytest.raises(pdf2image.exceptions.PDFPageCountError):
+        pdf_to_image(
+            pdf_path=TESTFILE_IMAGE_PATH)
