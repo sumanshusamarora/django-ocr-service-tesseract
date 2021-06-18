@@ -4,6 +4,7 @@ Define models to enable easy integration
 import logging
 import uuid
 
+import s3urls
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -16,6 +17,7 @@ from . import (
     delete_objects_from_cloud_storage,
     is_image,
     is_pdf,
+    is_cloud_storage,
     ocr_image,
     pdf_to_image,
     purge_directory,
@@ -76,6 +78,17 @@ class OCRInput(models.Model):
                 f'Dropped input file {parsed_url_dict["key"]} in bucket {parsed_url_dict["bucket"]}'
             )
 
+    def _load_results_to_outputocr_model(self, output_dict: dict):
+        """
+        Load the results of OCR Input to OCROutput models
+        :return:
+        """
+        for key, val in output_dict.items():
+            OCROutput.objects.create(guid=self,
+                                     image_path=key,
+                                     text=val,
+                                     )
+
     def _do_ocr(self):
         """
         Perform OCR on input file
@@ -127,6 +140,7 @@ class OCRInput(models.Model):
 
                 self.ocr_text = "\n".join(ocr_text_list)
                 self.result_response = output_dict
+                self._load_results_to_outputocr_model(output_dict)
 
         except Exception as exception:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
@@ -167,3 +181,33 @@ class OCRInput(models.Model):
         :return:
         """
         return f'GUID: {self.guid} || Bucket: {self.bucket_name} || Last Modified At: {self.modified_at.strftime("%Y-%m-%d %H:%M:%S")}'
+
+
+
+class OCROutput(models.Model):
+    """
+    Model to show OCR Output
+    """
+
+    guid = models.ForeignKey(OCRInput, on_delete=models.CASCADE)
+    image_path = models.CharField(max_length=1000, blank=False, null=False)
+    text = models.TextField(max_length=None, blank=True, null=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        """
+
+        :return:
+        """
+        if not is_cloud_storage(self.image_path):
+            self.image_path = s3urls.build_url('s3', self.guid.bucket_name, self.image_path)
+
+        super(OCROutput, self).save(*args, **kwargs)
+
+    def __str__(self):
+        """
+
+        :return:
+        """
+        return f"{self.guid} || Imagepath: {self.image_path}"

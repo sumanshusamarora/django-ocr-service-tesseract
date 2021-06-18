@@ -90,3 +90,4 @@ def test_purge_directory():
     # Teardown
     shutil.rmtree(dir_path)
     assert before_purge == random_number and after_purge == 0 and before_purge > 0
+
