@@ -164,7 +164,6 @@ def pdf_to_image(
         if cloud_storage == "s3":
             logger.info("Using S3 cloud storage backend")
             # Save to S3 if save_images_to_cloud is True
-
             for image in images:
                 kw_args = {
                     "path": image,
@@ -173,13 +172,15 @@ def pdf_to_image(
                     "key": f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
                     "append_datetime": False,
                 }
+
+                if use_threading_to_upload:
+                    kw_args["upload_async"] = True
+
                 cloud_storage_objects_kw_args.append(kw_args)
 
-            if not use_threading_to_upload:
-                for kw_args in cloud_storage_objects_kw_args:
-                    logger.info("Using threading to upload to cloud")
-                    s3_path = upload_to_cloud_storage(**kw_args)
-                    cloud_storage_object_paths.append(s3_path)
+                logging.info("Starting image upload")
+                s3_path = upload_to_cloud_storage(**kw_args)
+                cloud_storage_object_paths.append(s3_path)
             else:
                 cloud_storage_object_paths = upload_using_threading(cloud_storage_objects_kw_args=cloud_storage_objects_kw_args)
 

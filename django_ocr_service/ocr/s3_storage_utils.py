@@ -3,12 +3,13 @@ Collection of s3 utils to support OCR function.
 
 This file will require major refactor if we even change the cloud platform
 """
+import asyncio
 from datetime import datetime
 import logging
 import os
 
+import aioboto3
 import boto3
-from django.conf import settings
 from s3urls import parse_url
 
 logger = logging.getLogger(__name__)
@@ -126,11 +127,13 @@ def upload_to_cloud_storage(
     key = generate_cloud_storage_key(
         path=path, key=key, prefix=prefix, append_datetime=append_datetime
     )
+
     try:
         if upload_async:
-            logger.info("Uploading asynchronously")
-            upload_to_cloud_storage_async(path, bucket, key)
+            logger.info("Uploading to s3 asynchronously")
+            asyncio.run(upload_to_cloud_storage_async(path, bucket, key))
         else:
+            logger.info("Uploading to s3 in a blocking thread")
             s3_client.upload_file(path, bucket, key)
 
         logger.info(f"Successfully uploaded file {path} to {key}")
@@ -150,4 +153,3 @@ async def upload_to_cloud_storage_async(
 ):
     async with aioboto3.client("s3") as s3:
         await s3.upload_file(path, bucket, key)
-

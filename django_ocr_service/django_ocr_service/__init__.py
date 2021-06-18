@@ -109,13 +109,13 @@ if os.environ.get("DB_SCHEMA"):
         "options": f"-c search_path={os.environ.get('DB_SCHEMA')}"
     }
 
-# USE_THREADING_TO_UPLOAD_DELETE
-if os.environ.get("USE_THREADING_TO_UPLOAD_DELETE"):
-    config["USE_THREADING_TO_UPLOAD_DELETE"] = ast.literal_eval(
-        os.environ.get("USE_THREADING_TO_UPLOAD_DELETE")
+# USE_ASYNC_TO_UPLOAD_FILES
+if os.environ.get("USE_ASYNC_TO_UPLOAD_FILES"):
+    config["USE_ASYNC_TO_UPLOAD_FILES"] = ast.literal_eval(
+        os.environ.get("USE_ASYNC_TO_UPLOAD_FILES")
     )
-if config.get("USE_THREADING_TO_UPLOAD_DELETE") is None:
-    config["USE_THREADING_TO_UPLOAD_DELETE"] = True
+if config.get("USE_ASYNC_TO_UPLOAD_FILES") is None:
+    config["USE_ASYNC_TO_UPLOAD_FILES"] = True
 
 # DROP_INPUT_FILE_POST_PROCESSING
 if os.environ.get("DROP_INPUT_FILE_POST_PROCESSING"):
