@@ -153,7 +153,11 @@ class OCRInput(models.Model):
             if settings.DROP_INPUT_FILE_POST_PROCESSING and not input_is_image:
                 # Only delete input file if its a pdf since we convert it to images and re-upload it
                 # We don not want to duplicate the information
-                self._delete_input_file()
+                try:
+                    self._delete_input_file()
+                    logger.info("Input file deleted")
+                except:
+                    logger.warning("Error dropping input file. Does the application have access to location?")
 
     def save(self, *args, **kwargs):
         """
