@@ -5,17 +5,22 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
 import os
 import logging
+import warnings
 
 import cv2
 from django.conf import settings
 import pandas as pd
+from pandas.core.common import SettingWithCopyWarning
 import numpy as np
 from pathlib import Path
 from pdf2image import convert_from_path
-import PyPDF2
 from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
+
+urllib3_logger = logging.getLogger('urllib3')
+urllib3_logger.setLevel(logging.CRITICAL)
+warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 from . import (
     is_cloud_storage,
@@ -95,6 +100,26 @@ def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
 
     return local_path
 
+def upload_using_threading(cloud_storage_objects_kw_args):
+    """
+
+    :return:
+    """
+    storage_path_list = []
+
+    with ThreadPoolExecutor(
+            max_workers=None, thread_name_prefix="upload-images-to-cloud"
+    ) as executor:
+        futures = []
+        for kw_args in cloud_storage_objects_kw_args:
+            futures.append(executor.submit(upload_to_cloud_storage, **kw_args))
+
+        for future in futures:
+            storage_path_list.append(future.result())
+
+    return storage_path_list
+
+
 
 def pdf_to_image(
     pdf_path: str,
@@ -103,8 +128,9 @@ def pdf_to_image(
     dpi: int = 300,
     output_folder: str = None,
     fmt: str = "png",
-    cloud_storage="s3",
-    use_threading_to_upload=False,
+    cloud_storage: str = "s3",
+    use_threading_to_upload: bool = False,
+    append_date: bool = True,
 ):
     """
 
@@ -114,53 +140,62 @@ def pdf_to_image(
     cloud_storage_object_paths = []
     cloud_storage_objects_kw_args = []
 
+    if append_date:
+        logging.info("Append date is True, adding datetime to prefix")
+        prefix = f"{prefix}/{datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')}"
+
     if not output_folder:
         output_folder = settings.LOCAL_FILES_SAVE_DIR
 
+    logger.info(f"Directory {output_folder} set for image saving")
+
     Path(output_folder).mkdir(parents=True, exist_ok=True)
-    # Remove all files from otuput_dir to keep the container space in limit
+    # Remove all files from output_dir to keep the container space in limit
 
     images = convert_from_path(
         pdf_path, dpi=dpi, output_folder=output_folder, fmt=fmt, paths_only=True
     )
+    logger.info(f"{len(images)} images stored at {output_folder}")
+
     if not isinstance(images, list):
         images = [images]
 
     if save_images_to_cloud:
-        datetime_prefix = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
-    else:
-        datetime_prefix = None
+        if cloud_storage == "s3":
+            logger.info("Using S3 cloud storage backend")
+            # Save to S3 if save_images_to_cloud is True
 
-    if cloud_storage == "s3":
-        # Save to S3 if save_images_to_cloud is True
-        if datetime_prefix:
             for image in images:
                 kw_args = {
                     "path": image,
                     "bucket": settings.AWS_STORAGE_BUCKET_NAME,
-                    "prefix": f"{prefix}/{datetime_prefix}",
+                    "prefix": prefix,
                     "key": f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
                     "append_datetime": False,
                 }
                 cloud_storage_objects_kw_args.append(kw_args)
 
-                if not use_threading_to_upload:
+            if not use_threading_to_upload:
+                for kw_args in cloud_storage_objects_kw_args:
                     logger.info("Using threading to upload to cloud")
                     s3_path = upload_to_cloud_storage(**kw_args)
                     cloud_storage_object_paths.append(s3_path)
-                else:
-                    with ThreadPoolExecutor(
-                        max_workers=None, thread_name_prefix="upload-images-to-cloud"
-                    ) as executor:
-                        executor.submit(upload_to_cloud_storage, kwargs=kw_args)
+            else:
+                cloud_storage_object_paths = upload_using_threading(cloud_storage_objects_kw_args=cloud_storage_objects_kw_args)
 
-    if save_images_to_cloud and not len(cloud_storage_object_paths) == len(images):
-        logger.warning(
-            "Not all images got uploaded to cloud storage. You might be missing data"
-        )
-    else:
-        logger.error("Other storage backends except S3 not implemented yet")
-        raise NotImplementedError
+
+            if not len(cloud_storage_object_paths):
+                logger.warning(
+                    "Image upload failed"
+                )
+
+            elif not len(cloud_storage_object_paths) == len(images):
+                logger.warning(
+                    "Not all images got uploaded to cloud storage"
+                )
+        else:
+            logger.error("Other storage backends except S3 not implemented yet")
+            raise NotImplementedError
 
     return images, cloud_storage_objects_kw_args
 

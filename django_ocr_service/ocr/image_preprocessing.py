@@ -11,9 +11,6 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-size = None
-
-
 def get_size_of_scaled_image(im):
     """
     Return resize scale
@@ -21,11 +18,9 @@ def get_size_of_scaled_image(im):
     :param im:
     :return:
     """
-    global size
-    if size is None:
-        length_x, width_y = im.size
-        factor = max(1, int(settings.IMAGE_SIZE / length_x))
-        size = factor * length_x, factor * width_y
+    length_x, width_y = im.size
+    factor = max(1, int(settings.IMAGE_SIZE / length_x))
+    size = factor * length_x, factor * width_y
     return size
 
 

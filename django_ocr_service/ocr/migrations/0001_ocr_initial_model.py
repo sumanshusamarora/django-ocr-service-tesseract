@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         help_text="File or Cloud storage URL/URI required",
                         null=True,
-                        upload_to="input_pdfs",
+                        upload_to="input_files",
                     ),
                 ),
                 (

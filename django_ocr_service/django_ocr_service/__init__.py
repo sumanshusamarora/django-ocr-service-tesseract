@@ -124,3 +124,6 @@ if os.environ.get("DROP_INPUT_FILE_POST_PROCESSING"):
     )
 if config.get("DROP_INPUT_FILE_POST_PROCESSING") is None:
     config["DROP_INPUT_FILE_POST_PROCESSING"] = True
+
+if config.get("SAVE_IMAGES_TO_CLOUD") is None:
+    config["SAVE_IMAGES_TO_CLOUD"] = True

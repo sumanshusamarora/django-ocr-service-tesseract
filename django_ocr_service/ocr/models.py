@@ -31,7 +31,7 @@ class OCRInput(models.Model):
 
     guid = models.CharField(max_length=100, editable=False)
     file = models.FileField(
-        upload_to="input_pdfs",
+        upload_to="input_files",
         blank=True,
         null=True,
         help_text="File or Cloud storage URL/URI required",
@@ -99,6 +99,7 @@ class OCRInput(models.Model):
             if is_pdf(local_filepath):
                 image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
                     pdf_path=local_filepath,
+                    save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
                     use_threading_to_upload=settings.USE_THREADING_TO_UPLOAD_DELETE,
                 )
                 # Below line allows getting the upload paths even if upload to cloud storage

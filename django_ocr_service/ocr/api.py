@@ -39,7 +39,9 @@ class GenerateToken(APIView):
 
 
 class GenerateOCR(APIView):
-    """ """
+    """
+    View to enable POST method for text extraction
+    """
 
     authentication_classes = [ExpiringTokenAuthentication, BasicAuthentication]
     permission_classes = [IsAuthenticated]

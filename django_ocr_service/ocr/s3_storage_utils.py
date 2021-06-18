@@ -113,6 +113,7 @@ def upload_to_cloud_storage(
     prefix: str = None,
     key: str = None,
     append_datetime: bool = True,
+    upload_async: bool = False,
 ):
     """
 
@@ -126,7 +127,12 @@ def upload_to_cloud_storage(
         path=path, key=key, prefix=prefix, append_datetime=append_datetime
     )
     try:
-        s3_client.upload_file(path, bucket, key)
+        if upload_async:
+            logger.info("Uploading asynchronously")
+            upload_to_cloud_storage_async(path, bucket, key)
+        else:
+            s3_client.upload_file(path, bucket, key)
+
         logger.info(f"Successfully uploaded file {path} to {key}")
     except Exception as exception:
         logger.error(exception)
@@ -135,3 +141,13 @@ def upload_to_cloud_storage(
     return s3_client.generate_presigned_url(
         "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600
     )
+
+
+async def upload_to_cloud_storage_async(
+    path: str,
+    bucket: str,
+    key: str,
+):
+    async with aioboto3.client("s3") as s3:
+        await s3.upload_file(path, bucket, key)
+
