@@ -235,7 +235,7 @@ def generate_text_from_ocr_output(
     return text_join_delimiter.join(text_list)
 
 
-def build_tesseract_ocr_config(tsv_or_txt="tsv"):
+def build_tesseract_ocr_config(tsv_or_txt="tsv", oem: int=None, psm: int=None, tessdata_dir: str=None):
     """
 
     :return:
@@ -243,15 +243,21 @@ def build_tesseract_ocr_config(tsv_or_txt="tsv"):
     config_list = [tsv_or_txt]
 
     # OEM
-    if settings.OCR_OEM:
+    if oem:
+        config_list.append(f"--oem {oem}")
+    elif settings.OCR_OEM:
         config_list.append(f"--oem {settings.OCR_OEM}")
 
     # PSM
-    if settings.OCR_PSM:
+    if psm:
+        config_list.append(f"--psm {psm}")
+    elif settings.OCR_PSM:
         config_list.append(f"--psm {settings.OCR_PSM}")
 
     # TESSDATA DIR
-    if settings.OCR_TESSDATA_DIR:
+    if tessdata_dir:
+        config_list.append(f"--tessdata-dir {tessdata_dir}")
+    elif settings.OCR_TESSDATA_DIR:
         config_list.append(f"--tessdata-dir {settings.OCR_TESSDATA_DIR}")
 
     ocr_config = " ".join(config_list) if config_list else None

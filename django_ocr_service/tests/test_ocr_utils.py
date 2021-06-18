@@ -13,6 +13,7 @@ import pdf2image
 import pytest
 
 from ocr.ocr_utils import (
+    build_tesseract_ocr_config,
     is_pdf,
     is_image,
     purge_directory,
@@ -370,3 +371,37 @@ def test_pdf_to_image_pass_image():
     """
     with pytest.raises(pdf2image.exceptions.PDFPageCountError):
         pdf_to_image(pdf_path=TESTFILE_IMAGE_PATH)
+
+def test_pdf_to_image_other_storage():
+    """
+
+    :return:
+    """
+    with pytest.raises(NotImplementedError):
+        pdf_to_image(pdf_path=TESTFILE_PDF_PATH,
+                     cloud_storage="not s3"
+                     )
+
+def test_build_tesseract_ocr_config_default():
+    """
+
+    :return:
+    """
+    assert build_tesseract_ocr_config() == "tsv --oem 11"
+
+def test_build_tesseract_ocr_config_custom():
+    """
+
+    :return:
+    """
+    assert build_tesseract_ocr_config(tsv_or_txt="txt", oem=4, psm=1, tessdata_dir="something") == "txt --oem 4 --psm 1 --tessdata-dir something"
+
+def test_build_tesseract_ocr_config_setting(settings):
+    """
+
+    :return:
+    """
+    settings.OCR_OEM = 4
+    settings.OCR_PSM = 1
+    settings.OCR_TESSDATA_DIR = "something"
+    assert build_tesseract_ocr_config(tsv_or_txt="txt") == "txt --oem 4 --psm 1 --tessdata-dir something"
