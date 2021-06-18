@@ -19,6 +19,8 @@ from ocr.ocr_utils import (
     purge_directory,
     download_locally_if_cloud_storage_path,
     pdf_to_image,
+    generate_text_from_ocr_output,
+    ocr_image,
 )
 from ocr.s3_storage_utils import (
     delete_objects_from_cloud_storage,
