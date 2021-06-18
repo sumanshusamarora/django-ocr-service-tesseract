@@ -3,12 +3,10 @@ Collection of s3 utils to support OCR function.
 
 This file will require major refactor if we even change the cloud platform
 """
-import asyncio
 from datetime import datetime
 import logging
 import os
 
-import aioboto3
 import boto3
 from s3urls import parse_url
 
@@ -114,7 +112,6 @@ def upload_to_cloud_storage(
     prefix: str = None,
     key: str = None,
     append_datetime: bool = True,
-    upload_async: bool = False,
 ):
     """
 
@@ -129,13 +126,7 @@ def upload_to_cloud_storage(
     )
 
     try:
-        if upload_async:
-            logger.info("Uploading to s3 asynchronously")
-            asyncio.run(upload_to_cloud_storage_async(path, bucket, key))
-        else:
-            logger.info("Uploading to s3 in a blocking thread")
-            s3_client.upload_file(path, bucket, key)
-
+        s3_client.upload_file(path, bucket, key)
         logger.info(f"Successfully uploaded file {path} to {key}")
     except Exception as exception:
         logger.error(exception)
@@ -144,12 +135,3 @@ def upload_to_cloud_storage(
     return s3_client.generate_presigned_url(
         "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=3600
     )
-
-
-async def upload_to_cloud_storage_async(
-    path: str,
-    bucket: str,
-    key: str,
-):
-    async with aioboto3.client("s3") as s3:
-        await s3.upload_file(path, bucket, key)

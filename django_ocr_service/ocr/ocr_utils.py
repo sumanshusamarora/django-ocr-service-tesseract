@@ -7,6 +7,7 @@ import os
 import logging
 import warnings
 
+from asgiref.sync import sync_to_async
 import cv2
 from django.conf import settings
 import pandas as pd
@@ -129,7 +130,7 @@ def pdf_to_image(
     output_folder: str = None,
     fmt: str = "png",
     cloud_storage: str = "s3",
-    use_threading_to_upload: bool = False,
+    use_async_to_upload: bool = False,
     append_date: bool = True,
 ):
     """
@@ -173,13 +174,14 @@ def pdf_to_image(
                     "append_datetime": False,
                 }
 
-                if use_threading_to_upload:
-                    kw_args["upload_async"] = True
-
                 cloud_storage_objects_kw_args.append(kw_args)
 
                 logging.info("Starting image upload")
-                s3_path = upload_to_cloud_storage(**kw_args)
+                if use_async_to_upload:
+                    s3_path = sync_to_async(upload_to_cloud_storage, thread_sensitive=False)(**kw_args)
+                else:
+                    s3_path = upload_to_cloud_storage(**kw_args)
+
                 cloud_storage_object_paths.append(s3_path)
             else:
                 cloud_storage_object_paths = upload_using_threading(cloud_storage_objects_kw_args=cloud_storage_objects_kw_args)

@@ -100,7 +100,7 @@ class OCRInput(models.Model):
                 image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
                     pdf_path=local_filepath,
                     save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
-                    use_threading_to_upload=settings.USE_ASYNC_TO_UPLOAD_FILES,
+                    use_async_to_upload=settings.USE_ASYNC_TO_UPLOAD_FILES,
                 )
                 # Below line allows getting the upload paths even if upload to cloud storage
                 #  not finished due to threading workers still finishing their jobs
