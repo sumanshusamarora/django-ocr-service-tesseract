@@ -94,6 +94,7 @@ class OCRInput(models.Model):
         Perform OCR on input file
         :return:
         """
+        input_is_image = False
         try:
             image_filepaths = []
             ocr_text_list = []
@@ -130,6 +131,7 @@ class OCRInput(models.Model):
             elif is_image(local_filepath):
                 image_filepaths = [local_filepath]
                 cloud_storage_object_paths = [self.file.name]
+                input_is_image = True
 
             if image_filepaths:
                 output_dict = dict()
@@ -148,7 +150,9 @@ class OCRInput(models.Model):
         else:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
             # Drop input file post processing
-            if settings.DROP_INPUT_FILE_POST_PROCESSING:
+            if settings.DROP_INPUT_FILE_POST_PROCESSING and not input_is_image:
+                # Only delete input file if its a pdf since we convert it to images and re-upload it
+                # We don not want to duplicate the information
                 self._delete_input_file()
 
     def save(self, *args, **kwargs):
