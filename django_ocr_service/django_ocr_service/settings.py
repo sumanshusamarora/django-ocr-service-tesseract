@@ -18,6 +18,9 @@ import yaml
 
 from . import config
 
+urllib3_logger = logging.getLogger("urllib3")
+urllib3_logger.setLevel(logging.CRITICAL)
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,6 +36,7 @@ SECRET_KEY = config["SECRET_KEY"]
 os.environ["AWS_ACCESS_KEY_ID"] = config["AWS_ACCESS_KEY_ID"]
 os.environ["AWS_SECRET_ACCESS_KEY"] = config["AWS_SECRET_ACCESS_KEY"]
 AWS_STORAGE_BUCKET_NAME = config.get("AWS_STORAGE_BUCKET_NAME")
+CLOUD_STORAGE_BUCKET_NAME = config.get("AWS_STORAGE_BUCKET_NAME")
 os.environ["AWS_STORAGE_BUCKET_NAME"] = AWS_STORAGE_BUCKET_NAME
 AWS_REGION = config.get("AWS_REGION")
 os.environ["AWS_REGION"] = AWS_REGION
@@ -172,3 +176,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DEFAULT_FILE_STORAGE = "django_ocr_service.custom_storage.CloudMediaStorage"
 STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
+
+ALLOWED_STORAGES = ["s3"]

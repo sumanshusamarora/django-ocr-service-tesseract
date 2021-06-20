@@ -1,0 +1,32 @@
+
+DATABASES:
+  default:
+    ENGINE: "django.db.backends.postgresql_psycopg2"
+    PORT: "5432"
+    OPTIONS:
+      options: "-c search_path=ocr-app"
+
+DEBUG: True
+
+#AWS
+AWS_STORAGE_BUCKET_NAME: "ml-ocr-app-utils"
+AWS_REGION: 'us-west-2'
+
+# TOKEN
+TOKEN_VALIDITY_IN_HOURS: 1
+
+#SUPERUSER
+DJANGO_SUPERUSER_USERNAME: "admin"
+DJANGO_SUPERUSER_EMAIL: "admin@example.com"
+
+# IMAGE PREPROCESSING
+IMAGE_SIZE: 1800
+BINARY_THRESHOLD: 180
+
+# OCR
+OCR_OEM: 11
+
+# OTHERS
+USE_ASYNC_TO_UPLOAD_FILES: True
+DROP_INPUT_FILE_POST_PROCESSING: True
+SAVE_IMAGES_TO_CLOUD: True

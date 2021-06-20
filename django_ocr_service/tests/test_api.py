@@ -103,6 +103,7 @@ class TestPostOCR:
         )
         token = token_response.data["token"]
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
+
         response = self.django_client.post(
             "/api/ocr/", data={"cloud_storage_url_or_uri": self.uploaded_filepath}
         )

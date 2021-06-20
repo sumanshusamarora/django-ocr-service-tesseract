@@ -10,17 +10,12 @@ from asgiref.sync import sync_to_async
 import cv2
 from django.conf import settings
 import pandas as pd
-from pandas.core.common import SettingWithCopyWarning
 import numpy as np
 from pathlib import Path
 from pdf2image import convert_from_path
 from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
-
-urllib3_logger = logging.getLogger("urllib3")
-urllib3_logger.setLevel(logging.CRITICAL)
-warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 from . import (
     is_cloud_storage,
@@ -91,7 +86,7 @@ def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
     if is_cloud_storage_path:
         cloud_storage_parse_dict = parse_url(filepath)
         local_path = load_from_cloud_storage_and_save(
-            obj=cloud_storage_parse_dict["key"],
+            key=cloud_storage_parse_dict["key"],
             bucket=cloud_storage_parse_dict["bucket"],
             local_save_dir=save_dir,
         )
@@ -235,7 +230,9 @@ def generate_text_from_ocr_output(
     return text_join_delimiter.join(text_list)
 
 
-def build_tesseract_ocr_config(tsv_or_txt="tsv", oem: int=None, psm: int=None, tessdata_dir: str=None):
+def build_tesseract_ocr_config(
+    tsv_or_txt="tsv", oem: int = None, psm: int = None, tessdata_dir: str = None
+):
     """
 
     :return:
@@ -296,6 +293,8 @@ def ocr_image(
         )
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
     else:
-        raise NotImplementedError("No other OCR engine except tesseract is supported currently")
+        raise NotImplementedError(
+            "No other OCR engine except tesseract is supported currently"
+        )
 
     return ocr_text

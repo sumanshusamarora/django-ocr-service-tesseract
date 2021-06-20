@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 from rest_framework.test import APIClient
 
-from ocr.s3_storage_utils import (
+from ocr import (
     delete_objects_from_cloud_storage,
     upload_to_cloud_storage,
 )

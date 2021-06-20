@@ -23,7 +23,7 @@ from ocr.ocr_utils import (
     generate_text_from_ocr_output,
     ocr_image,
 )
-from ocr.s3_storage_utils import (
+from ocr.storage_utils import (
     delete_objects_from_cloud_storage,
     generate_cloud_storage_key,
 )
@@ -376,15 +376,15 @@ def test_pdf_to_image_pass_image():
     with pytest.raises(pdf2image.exceptions.PDFPageCountError):
         pdf_to_image(pdf_path=TESTFILE_IMAGE_PATH)
 
+
 def test_pdf_to_image_other_storage():
     """
 
     :return:
     """
     with pytest.raises(NotImplementedError):
-        pdf_to_image(pdf_path=TESTFILE_PDF_PATH,
-                     cloud_storage="not s3"
-                     )
+        pdf_to_image(pdf_path=TESTFILE_PDF_PATH, cloud_storage="not s3")
+
 
 def test_build_tesseract_ocr_config_default():
     """
@@ -393,12 +393,19 @@ def test_build_tesseract_ocr_config_default():
     """
     assert build_tesseract_ocr_config() == "tsv --oem 11"
 
+
 def test_build_tesseract_ocr_config_custom():
     """
 
     :return:
     """
-    assert build_tesseract_ocr_config(tsv_or_txt="txt", oem=4, psm=1, tessdata_dir="something") == "txt --oem 4 --psm 1 --tessdata-dir something"
+    assert (
+        build_tesseract_ocr_config(
+            tsv_or_txt="txt", oem=4, psm=1, tessdata_dir="something"
+        )
+        == "txt --oem 4 --psm 1 --tessdata-dir something"
+    )
+
 
 def test_build_tesseract_ocr_config_setting(settings):
     """
@@ -408,31 +415,53 @@ def test_build_tesseract_ocr_config_setting(settings):
     settings.OCR_OEM = 4
     settings.OCR_PSM = 1
     settings.OCR_TESSDATA_DIR = "something"
-    assert build_tesseract_ocr_config(tsv_or_txt="txt") == "txt --oem 4 --psm 1 --tessdata-dir something"
+    assert (
+        build_tesseract_ocr_config(tsv_or_txt="txt")
+        == "txt --oem 4 --psm 1 --tessdata-dir something"
+    )
+
 
 def test_ocr_image():
     """
 
     :return:
     """
-    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=True, ocr_config=None, ocr_engine = "tesseract")
+    out = ocr_image(
+        imagepath=TESTFILE_IMAGE_PATH,
+        preprocess=True,
+        ocr_config=None,
+        ocr_engine="tesseract",
+    )
     assert isinstance(out, str)
+
 
 def test_ocr_image_no_preprocess():
     """
 
     :return:
     """
-    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config=None, ocr_engine = "tesseract")
+    out = ocr_image(
+        imagepath=TESTFILE_IMAGE_PATH,
+        preprocess=False,
+        ocr_config=None,
+        ocr_engine="tesseract",
+    )
     assert isinstance(out, str)
+
 
 def test_ocr_image_manual_ocr_config():
     """
 
     :return:
     """
-    out = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config="--psm 4 --oem 3", ocr_engine = "tesseract")
+    out = ocr_image(
+        imagepath=TESTFILE_IMAGE_PATH,
+        preprocess=False,
+        ocr_config="--psm 4 --oem 3",
+        ocr_engine="tesseract",
+    )
     assert isinstance(out, str)
+
 
 def test_ocr_image_manual_ocr_config():
     """
@@ -440,7 +469,13 @@ def test_ocr_image_manual_ocr_config():
     :return:
     """
     with pytest.raises((NotImplementedError)):
-        _ = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False, ocr_config="--psm 4", ocr_engine="something")
+        _ = ocr_image(
+            imagepath=TESTFILE_IMAGE_PATH,
+            preprocess=False,
+            ocr_config="--psm 4",
+            ocr_engine="something",
+        )
+
 
 def test_generate_text_from_ocr_output():
     """
