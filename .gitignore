@@ -36,5 +36,3 @@ config/config.local.yml
 django_ocr_service/media/input_files/*.pdf
 
 *.ignore
-
-DockerfileLocal

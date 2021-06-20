@@ -1,1 +1,3 @@
-con
+config/config.yml
+config/config.local.yml
+.pre-commit-hooks.yaml
