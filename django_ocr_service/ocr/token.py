@@ -21,7 +21,7 @@ def regenerated_expired_token(token_object):
     """
     token_object.delete()
     token_object = ExpiringToken.objects.create(user=token_object.user)
-    logger.info(f"Token regeranted for user {token_object.user}")
+    logger.info(f"Token regeneranted for user {token_object.user}")
     return token_object
 
 

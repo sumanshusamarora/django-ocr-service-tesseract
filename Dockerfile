@@ -11,10 +11,8 @@ COPY bin/eng.traineddata /usr/share/tesseract-ocr/4.00/tessdata/eng.traineddata
 
 # Create Environment
 COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && conda clean -a -c -q && conda activate django-ocr-service
-
-# System packages
-RUN apt-get update && apt-get install -y curl
+RUN conda env create -f /tmp/environment.yml && conda clean -afy
+RUN /opt/conda/bin/activate django-ocr-service
 
 ARG DB_PASSWORD
 ENV DB_PASSWORD=$DB_PASSWORD

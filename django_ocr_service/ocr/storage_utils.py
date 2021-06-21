@@ -98,6 +98,18 @@ def upload_to_cloud_storage(
 
     return cloud_storage.url(name=key)
 
+def generate_cloud_object_url(key: str,
+                              bucket: str = None,
+                              ):
+    """
+
+    :return:
+    """
+    cloud_storage = instantiate_custom_cloud_stroage(
+        bucket=bucket, clear_default_location=True
+    )
+    return cloud_storage.url(name=key)
+
 
 def load_from_cloud_storage_and_save(
     key: str, bucket: str = None, local_save_dir: str = "/tmp"

@@ -25,4 +25,4 @@ dependencies:
       - django-expiring-token
       - django-storages
       - s3urls
-      - aiboto3
+      - aioboto3
