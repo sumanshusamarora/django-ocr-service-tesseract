@@ -21,6 +21,7 @@ dependencies:
   - pytest-django
   - uvicorn
   - gunicorn
+  - pandas
   - pip:
       - django-expiring-token
       - django-storages

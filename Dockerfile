@@ -1,8 +1,8 @@
 FROM continuumio/miniconda:latest
 
-# Install tesseract
+# Install tesseract and other dependencies
 RUN apt-get update \
-    && apt-get install tesseract-ocr -y \
+    && apt-get install tesseract-ocr libgl1-mesa-glx poppler-utils -y \
     && apt-get clean \
     && apt-get autoremove
 
@@ -12,8 +12,6 @@ COPY bin/eng.traineddata /usr/share/tesseract-ocr/4.00/tessdata/eng.traineddata
 # Create Environment
 COPY environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && conda clean -afy
-RUN /opt/conda/bin/activate django-ocr-service
-
 ENV PATH=/opt/conda/envs/django-ocr-service/bin:$PATH
 
 ARG DB_PASSWORD
