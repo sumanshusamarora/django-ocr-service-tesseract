@@ -56,20 +56,20 @@ if os.environ.get("TOKEN_VALIDITY_IN_HOURS"):
 if not config.get("TOKEN_VALIDITY_IN_HOURS"):
     config["TOKEN_VALIDITY_IN_HOURS"] = 1
 
-if not os.environ.get("DJANGO_SUPERUSER_USERNAME") and not config.get(
-    "DJANGO_SUPERUSER_USERNAME"
-):
-    config["DJANGO_SUPERUSER_USERNAME"] = None
+if os.environ.get("DJANGO_SUPERUSER_USERNAME"):
+    config["DJANGO_SUPERUSER_USERNAME"] = config.get("DJANGO_SUPERUSER_USERNAME")
+else:
+    config["DJANGO_SUPERUSER_USERNAME"] = os.environ.get("DJANGO_SUPERUSER_USERNAME")
 
-if not os.environ.get("DJANGO_SUPERUSER_EMAIL") and not config.get(
-    "DJANGO_SUPERUSER_EMAIL"
-):
-    config["DJANGO_SUPERUSER_EMAIL"] = None
+if os.environ.get("DJANGO_SUPERUSER_EMAIL"):
+    config["DJANGO_SUPERUSER_EMAIL"] = config.get("DJANGO_SUPERUSER_EMAIL")
+else:
+    config["DJANGO_SUPERUSER_EMAIL"] = os.environ.get("DJANGO_SUPERUSER_EMAIL")
 
-if not os.environ.get("DJANGO_SUPERUSER_PASSWORD") and not config.get(
-    "DJANGO_SUPERUSER_PASSWORD"
-):
-    config["DJANGO_SUPERUSER_PASSWORD"] = None
+if os.environ.get("DJANGO_SUPERUSER_PASSWORD"):
+    config["DJANGO_SUPERUSER_PASSWORD"] = config.get("DJANGO_SUPERUSER_PASSWORD")
+else:
+    config["DJANGO_SUPERUSER_PASSWORD"] = os.environ.get("DJANGO_SUPERUSER_PASSWORD")
 
 # IMAGE PREPROCSSING
 if not config.get("IMAGE_SIZE"):

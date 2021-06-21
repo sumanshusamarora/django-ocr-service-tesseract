@@ -14,6 +14,8 @@ COPY environment.yml /tmp/environment.yml
 RUN conda env create -f /tmp/environment.yml && conda clean -afy
 RUN /opt/conda/bin/activate django-ocr-service
 
+ENV PATH=/opt/conda/envs/django-ocr-service/bin:$PATH
+
 ARG DB_PASSWORD
 ENV DB_PASSWORD=$DB_PASSWORD
 
@@ -43,7 +45,8 @@ RUN chmod 774 /logs
 
 RUN mkdir -p /SRC/config
 RUN chmod 774 /SRC
-COPY django_ocr_service /SRC
+RUN mkdir /SRC/django_ocr_service
+COPY django_ocr_service /SRC/django_ocr_service/
 ADD config/config_docker_local.yml /SRC/config/config.yml
 
 WORKDIR /SRC/django_ocr_service
