@@ -191,3 +191,4 @@ def is_cloud_storage(url: str, storage_name: str = "s3"):
         logger.info(f"{url} not a valid {storage_name} url")
 
     return None
+
