@@ -171,7 +171,7 @@ def pdf_to_image(
                                                      )
                 else:
                     logging.info("Uploading to cloud in a blocking thread")
-                    cloud_storage_path = upload_to_cloud_storage.now(**kw_args)
+                    cloud_storage_path = upload_to_cloud_storage(**kw_args)
 
                 cloud_storage_object_paths.append(cloud_storage_path)
 

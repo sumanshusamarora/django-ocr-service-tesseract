@@ -35,6 +35,7 @@ from .help_testutils import (
     UploadDeleteTestFile,
 )
 
+pytestmark = pytest.mark.django_db()
 
 @pytest.mark.parametrize(
     "filepath, output",
