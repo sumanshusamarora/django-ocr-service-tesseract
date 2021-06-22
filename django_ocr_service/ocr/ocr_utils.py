@@ -198,7 +198,7 @@ def generate_text_from_ocr_output(
     ignore_index = []
     line_indexes = []
     data_indexes = list(ocr_dataframe.index)
-    ocr_dataframe["text"] = ocr_dataframe["text"].fillna("")
+    ocr_dataframe["text"].fillna("", inplace=True)
     for i in data_indexes:
         if (
             i not in ignore_index

@@ -27,3 +27,4 @@ dependencies:
       - django-storages
       - s3urls
       - aioboto3
+      - django-apscheduler
