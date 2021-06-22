@@ -17,5 +17,19 @@ class OcrConfig(AppConfig):
         :return:
         """
         from django_apscheduler.jobstores import DjangoJobStore
-        scheduler.add_jobstore(DjangoJobStore(), "default")
-        scheduler.start()
+        # Stop scheduler if already running
+        try:
+            scheduler.remove_jobstore("default")
+            scheduler.remove_all_jobs()
+            scheduler.stop()
+        except:
+            pass
+
+        if not scheduler.state:
+            scheduler.add_jobstore(DjangoJobStore(), "default")
+            scheduler.start()
+
+
+
+
+

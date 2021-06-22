@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+
 from ocr.api import GenerateOCR
 from ocr.api import GenerateToken
 

@@ -102,7 +102,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.SessionAuthentication",
         "django_expiring_token.authentication.ExpiringTokenAuthentication",
-    ]
+    ],
 }
 
 ROOT_URLCONF = "django_ocr_service.urls"
