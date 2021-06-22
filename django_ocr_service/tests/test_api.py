@@ -8,7 +8,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django_expiring_token.models import ExpiringToken
 import pytest
 
-from ocr.models import OCRInput
+from ocr import object_exists_in_cloud_storage
+from ocr.models import OCRInput, OCROutput
 from .help_testutils import (
     create_rest_user_login_generate_token,
     TESTFILE_PDF_PATH,
@@ -107,9 +108,13 @@ class TestPostOCR:
         response = self.django_client.post(
             "/api/ocr/", data={"cloud_storage_url_or_uri": self.uploaded_filepath}
         )
+
         ocrinput_objs = OCRInput.objects.all()
+        ocroutput_objs = OCROutput.objects.all()
+
         assert (
             len(ocrinput_objs) > 0
+            and len(ocroutput_objs) > 0
             and response.status_code == 200
             and isinstance(response.data["response"], dict)
         )

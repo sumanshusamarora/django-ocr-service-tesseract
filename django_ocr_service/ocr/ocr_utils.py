@@ -1,12 +1,10 @@
 """
 Common OCR utils
 """
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import logging
-import warnings
 
-from asgiref.sync import sync_to_async
 import cv2
 from django.conf import settings
 import pandas as pd
@@ -17,11 +15,13 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
+from .apps import scheduler
 from . import (
+    generate_cloud_storage_key,
     is_cloud_storage,
-    upload_to_cloud_storage,
     load_from_cloud_storage_and_save,
     preprocess_image_for_ocr,
+    upload_to_cloud_storage,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ def pdf_to_image(
     cloud_storage_objects_kw_args = []
 
     if not prefix:
-        prefix = "."
+        prefix = ""
 
     if append_datetime:
         logging.info("Append date is True, adding datetime to prefix")
@@ -155,11 +155,23 @@ def pdf_to_image(
 
                 logging.info("Starting image upload")
                 if use_async_to_upload:
-                    cloud_storage_path = sync_to_async(
-                        upload_to_cloud_storage, thread_sensitive=False
-                    )(**kw_args)
+                    logging.info("Uploading to cloud through background job")
+                    scheduler.add_job(func=upload_to_cloud_storage,
+                                      trigger="date",
+                                      run_date=datetime.now(timezone.utc),
+                                      name=f"{kw_args['prefix']}-{kw_args['key']}",
+                                      kwargs=kw_args,
+                                      misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
+                                      jobstore="default"
+                                      )
+                    cloud_storage_path = generate_cloud_storage_key(path=kw_args["path"],
+                                                     key=kw_args["key"],
+                                                     prefix=kw_args["prefix"],
+                                                     append_datetime=kw_args["append_datetime"]
+                                                     )
                 else:
-                    cloud_storage_path = upload_to_cloud_storage(**kw_args)
+                    logging.info("Uploading to cloud in a blocking thread")
+                    cloud_storage_path = upload_to_cloud_storage.now(**kw_args)
 
                 cloud_storage_object_paths.append(cloud_storage_path)
 

@@ -100,7 +100,7 @@ class OCRInput(models.Model):
             image_filepaths = []
             ocr_text_list = []
 
-            if self.file:
+            if self.file.name:
                 filepath = self.file.url
             else:
                 filepath = self.cloud_storage_url_or_uri
@@ -131,7 +131,7 @@ class OCRInput(models.Model):
 
             elif is_image(local_filepath):
                 image_filepaths = [local_filepath]
-                cloud_storage_object_paths = [self.file.name]
+                cloud_storage_object_paths = [filepath]
                 input_is_image = True
 
             if image_filepaths:

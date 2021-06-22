@@ -63,7 +63,6 @@ def generate_cloud_storage_key(
 
     return key
 
-
 def upload_to_cloud_storage(
     path: str,
     bucket: str = None,
@@ -109,7 +108,6 @@ def generate_cloud_object_url(key: str,
         bucket=bucket, clear_default_location=True
     )
     return cloud_storage.url(name=key)
-
 
 def load_from_cloud_storage_and_save(
     key: str, bucket: str = None, local_save_dir: str = "/tmp"
@@ -191,4 +189,17 @@ def is_cloud_storage(url: str, storage_name: str = "s3"):
         logger.info(f"{url} not a valid {storage_name} url")
 
     return None
+
+def object_exists_in_cloud_storage(key: str, bucket:str = None):
+    """
+    Check is object exists in cloud storage
+    :param key:
+    :return:
+    """
+    cloud_storage = instantiate_custom_cloud_stroage(
+        bucket=bucket, clear_default_location=True
+    )
+
+    return cloud_storage.exists(name=key)
+
 

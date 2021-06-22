@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_expiring_token",
     "storages",
+    "django_apscheduler",
 ]
 
 MIDDLEWARE = [
@@ -178,3 +179,7 @@ DEFAULT_FILE_STORAGE = "django_ocr_service.custom_storage.CloudMediaStorage"
 STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 
 ALLOWED_STORAGES = ["s3"]
+
+APSCHEDULER_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+APSCHEDULER_RUN_NOW_TIMEOUT = 90
+
