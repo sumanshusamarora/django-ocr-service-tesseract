@@ -7,6 +7,7 @@ from django.conf import settings
 
 scheduler = BackgroundScheduler(timezone=settings.TIME_ZONE)
 
+
 class OcrConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "ocr"
@@ -17,6 +18,7 @@ class OcrConfig(AppConfig):
         :return:
         """
         from django_apscheduler.jobstores import DjangoJobStore
+
         # Stop scheduler if already running
         try:
             scheduler.remove_jobstore("default")
@@ -28,8 +30,3 @@ class OcrConfig(AppConfig):
         if not scheduler.state:
             scheduler.add_jobstore(DjangoJobStore(), "default")
             scheduler.start()
-
-
-
-
-

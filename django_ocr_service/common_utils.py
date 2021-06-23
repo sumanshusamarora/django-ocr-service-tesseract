@@ -3,6 +3,7 @@ Common utils to be utilized by application
 """
 from django.conf import settings
 
+
 def get_schema_name():
     schema_name = None
     db_options = settings.DATABASES["default"].get("OPTIONS")

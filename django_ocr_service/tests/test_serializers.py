@@ -15,9 +15,7 @@ def test_positive_case_storage_path():
 
     :return:
     """
-    serializer_obj = OCRInputSerializer(
-        data={"cloud_storage_url_or_uri": "some string"}
-    )
+    serializer_obj = OCRInputSerializer(data={"cloud_storage_uri": "some string"})
     assert serializer_obj.is_valid()
 
 
@@ -47,6 +45,6 @@ def test_positive_case_no_input():
 def test_more_than_just_file():
     """ """
     serializer_obj = OCRInputSerializer(
-        data={"cloud_storage_url_or_uri": "some string", "ocr_config": "something"}
+        data={"cloud_storage_uri": "some string", "ocr_config": "something"}
     )
     assert serializer_obj.is_valid()

@@ -88,7 +88,7 @@ class TestPostOCR:
         """
         response = self.django_client.post(
             "/api/ocr/",
-            data={"cloud_storage_url_or_uri": self.uploaded_filepath},
+            data={"cloud_storage_uri": self.uploaded_filepath},
             format="json",
         )
         assert response.status_code == 401
@@ -106,7 +106,7 @@ class TestPostOCR:
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
 
         response = self.django_client.post(
-            "/api/ocr/", data={"cloud_storage_url_or_uri": self.uploaded_filepath}
+            "/api/ocr/", data={"cloud_storage_uri": self.uploaded_filepath}
         )
 
         ocrinput_objs = OCRInput.objects.all()

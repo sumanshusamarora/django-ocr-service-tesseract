@@ -1,7 +1,6 @@
 """
 Define models to enable easy integration
 """
-import os
 from datetime import datetime, timezone
 import logging
 import uuid
@@ -11,7 +10,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from s3urls import parse_url
-import urllib
+from urllib.parse import unquote_plus, unquote
 
 from .apps import scheduler
 from . import (
@@ -39,13 +38,13 @@ class OCRInput(models.Model):
         upload_to="input_files",
         blank=True,
         null=True,
-        help_text="File or Cloud storage URL/URI required",
+        help_text="File or Cloud storage URI required",
     )
-    cloud_storage_url_or_uri = models.CharField(
+    cloud_storage_uri = models.CharField(
         max_length=1000,
         null=True,
         blank=True,
-        help_text="File or Cloud storage URL/URI required",
+        help_text="File or Cloud storage URI required",
     )
     bucket_name = models.CharField(max_length=255, blank=True, null=True)
     filename = models.CharField(max_length=255, blank=True, null=True)
@@ -61,7 +60,7 @@ class OCRInput(models.Model):
         Applies validators
         :return:
         """
-        if not self.file.name and not self.cloud_storage_url_or_uri:
+        if not self.file.name and not self.cloud_storage_uri:
             raise ValidationError("Cloud file path or file upload required")
 
     def _delete_input_file(self):
@@ -73,45 +72,14 @@ class OCRInput(models.Model):
             self.file.storage.delete(name=self.file.name)
             logger.info("Dropped uploaded input file")
         else:
-            parsed_url_dict = parse_url(self.cloud_storage_url_or_uri)
+            logger.info("Starting process to delete cloud storage input file")
+            parsed_uri_dict = parse_url(self.cloud_storage_uri)
             delete_objects_from_cloud_storage(
-                keys=[parsed_url_dict["key"]], bucket=parsed_url_dict["bucket"]
+                keys=[parsed_uri_dict["key"]], bucket=parsed_uri_dict["bucket"]
             )
             logger.info(
-                f'Dropped input file {parsed_url_dict["key"]} in bucket {parsed_url_dict["bucket"]}'
+                f'Dropped input file {parsed_uri_dict["key"]} in bucket {parsed_uri_dict["bucket"]}'
             )
-
-    def _ocr_and_save_output(self, local_imagepath: str, cloud_imagepath: str):
-        """
-
-        :return:
-        """
-        logger.info(f"Preparing to run OCR on {local_imagepath}")
-        ocr_text = ocr_image(imagepath=local_imagepath)
-
-        if os.path.isfile(local_imagepath):
-            os.remove(local_imagepath)
-            logger.info(f"Local file {local_imagepath} deleted")
-
-        OCROutput.objects.create(
-            guid=self,
-            image_path=cloud_imagepath,
-            text=ocr_text,
-        )
-
-        if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
-            # Only delete input file if its a pdf since we convert it to images and re-upload it
-            # We don not want to duplicate the information
-            try:
-                self._delete_input_file()
-                logger.info("Input file deleted")
-            except:
-                logger.warning(
-                    "Error dropping input file. Does the application have access to location?"
-                )
-
-        return ocr_text
-
 
     def _do_ocr(self):
         """
@@ -124,18 +92,21 @@ class OCRInput(models.Model):
 
             if self.file.name:
                 filepath = self.file.url
-                logger.info(f"Uploaded file url - {filepath}")
+                logger.info(f"Uploaded file - {filepath}")
             else:
-                filepath = self.cloud_storage_url_or_uri
-                logger.info(f"Stored file url - {filepath}")
-
-            filepath = urllib.parse.unquote(filepath)
+                self.cloud_storage_uri = unquote(unquote_plus(self.cloud_storage_uri))
+                filepath = unquote(unquote_plus(self.cloud_storage_uri))
+                logger.info(f"Stored file uri - {filepath}")
 
             local_filepath = download_locally_if_cloud_storage_path(
                 filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
             )
 
-            logger.info(f"File {filepath} downloaded locally")
+            if not isinstance(local_filepath, str):
+                logger.info("File download failed")
+                return
+            else:
+                logger.info(f"File {filepath} downloaded locally")
 
             if is_pdf(local_filepath):
                 image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
@@ -165,26 +136,44 @@ class OCRInput(models.Model):
 
             if image_filepaths:
                 for index, image in enumerate(image_filepaths):
-                    kw_args = {"local_imagepath": image, "cloud_imagepath": cloud_storage_object_paths[index]},
-                    args = [image, cloud_storage_object_paths[index]]
+                    kw_args = {
+                        "imagepath": image,
+                        "preprocess": True,
+                        "inputocr_instance": self,
+                        "cloud_imagepath": cloud_storage_object_paths[index],
+                        "ocr_output_model": OCROutput,
+                    }
+
                     if settings.USE_ASYNC_TO_UPLOAD_FILES:
                         scheduler.add_job(
-                            func=self._ocr_and_save_output,
+                            func=ocr_image,
                             trigger="date",
                             run_date=datetime.now(timezone.utc),
                             name=f"{self.guid}-{image}",
-                            args=args,
+                            kwargs=kw_args,
                             misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
-                            jobstore="default"
+                            jobstore="default",
                         )
                     else:
-                        self._ocr_and_save_output(**kw_args)
+                        ocr_image(**kw_args)
 
+                if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
+                    # Only delete input file if its a pdf since we convert it to images and re-upload it
+                    # We don not want to duplicate the information
+                    logger.info(
+                        f"Settings to drop input file is {settings.DROP_INPUT_FILE_POST_PROCESSING} and input is not an image so dropping input file"
+                    )
+                    try:
+                        self._delete_input_file()
+                        logger.info("Input file deleted")
+                    except:
+                        logger.warning(
+                            "Error dropping input file. Does the application have access to location?"
+                        )
 
         except Exception as exception:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
             raise exception
-
 
     def save(self, *args, **kwargs):
         """
@@ -198,11 +187,13 @@ class OCRInput(models.Model):
         if not self.guid:
             self.guid = uuid.uuid4().hex
 
-        if self.cloud_storage_url_or_uri:
-            parsed_url_dict = parse_url(self.cloud_storage_url_or_uri)
-            self.bucket_name = parsed_url_dict["bucket"]
+        if self.cloud_storage_uri:
+            parsed_uri_dict = parse_url(self.cloud_storage_uri)
+            self.bucket_name = parsed_uri_dict["bucket"]
         else:
-            self.cloud_storage_url_or_uri = self.file.url
+            self.cloud_storage_uri = self.file.url
+
+        self.clean()
 
         super(OCRInput, self).save()
         logger.info("Starting OCR process now")

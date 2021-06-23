@@ -63,6 +63,7 @@ def generate_cloud_storage_key(
 
     return key
 
+
 def upload_to_cloud_storage(
     path: str,
     bucket: str = None,
@@ -97,9 +98,11 @@ def upload_to_cloud_storage(
 
     return cloud_storage.url(name=key)
 
-def generate_cloud_object_url(key: str,
-                              bucket: str = None,
-                              ):
+
+def generate_cloud_object_url(
+    key: str,
+    bucket: str = None,
+):
     """
 
     :return:
@@ -108,6 +111,7 @@ def generate_cloud_object_url(key: str,
         bucket=bucket, clear_default_location=True
     )
     return cloud_storage.url(name=key)
+
 
 def load_from_cloud_storage_and_save(
     key: str, bucket: str = None, local_save_dir: str = "/tmp"
@@ -148,6 +152,7 @@ def delete_objects_from_cloud_storage(keys, bucket: str):
 
     :return: Local filepath of object
     """
+    logger.info("Deleting objects from cloud storage")
     if not isinstance(keys, list):
         keys = [keys]
 
@@ -180,8 +185,8 @@ def is_cloud_storage(url: str, storage_name: str = "s3"):
 
     try:
         if storage_name == "s3":
-            parse_url_dict = parse_url(url)
-            return parse_url_dict
+            parse_uri_dict = parse_url(url)
+            return parse_uri_dict
         else:
             # This else block should have more code when other storages are supported
             raise NotImplementedError(f"{storage_name} not implemented yet")
@@ -190,7 +195,8 @@ def is_cloud_storage(url: str, storage_name: str = "s3"):
 
     return None
 
-def object_exists_in_cloud_storage(key: str, bucket:str = None):
+
+def object_exists_in_cloud_storage(key: str, bucket: str = None):
     """
     Check is object exists in cloud storage
     :param key:
@@ -201,5 +207,3 @@ def object_exists_in_cloud_storage(key: str, bucket:str = None):
     )
 
     return cloud_storage.exists(name=key)
-
-

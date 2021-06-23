@@ -135,7 +135,8 @@ def pdf_to_image(
         pdf_path,
         dpi=dpi,
         output_folder=output_folder,
-        fmt=fmt, paths_only=True,
+        fmt=fmt,
+        paths_only=True,
         thread_count=multiprocessing.cpu_count(),
     )
     logger.info(f"{len(images)} images stored at {output_folder}")
@@ -161,19 +162,21 @@ def pdf_to_image(
                 logging.info("Starting image upload")
                 if use_async_to_upload:
                     logging.info("Uploading to cloud through background job")
-                    scheduler.add_job(func=upload_to_cloud_storage,
-                                      trigger="date",
-                                      run_date=datetime.now(timezone.utc),
-                                      name=f"{kw_args['prefix']}-{kw_args['key']}",
-                                      kwargs=kw_args,
-                                      misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
-                                      jobstore="default"
-                                      )
-                    cloud_storage_path = generate_cloud_storage_key(path=kw_args["path"],
-                                                     key=kw_args["key"],
-                                                     prefix=kw_args["prefix"],
-                                                     append_datetime=kw_args["append_datetime"]
-                                                     )
+                    scheduler.add_job(
+                        func=upload_to_cloud_storage,
+                        trigger="date",
+                        run_date=datetime.now(timezone.utc),
+                        name=f"{kw_args['prefix']}-{kw_args['key']}",
+                        kwargs=kw_args,
+                        misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
+                        jobstore="default",
+                    )
+                    cloud_storage_path = generate_cloud_storage_key(
+                        path=kw_args["path"],
+                        key=kw_args["key"],
+                        prefix=kw_args["prefix"],
+                        append_datetime=kw_args["append_datetime"],
+                    )
                 else:
                     logging.info("Uploading to cloud in a blocking thread")
                     cloud_storage_path = upload_to_cloud_storage(**kw_args)
@@ -280,7 +283,12 @@ def build_tesseract_ocr_config(
 
 
 def ocr_image(
-    imagepath: str, preprocess: bool = True, ocr_config=None, ocr_engine="tesseract"
+    imagepath: str,
+    preprocess: bool = True,
+    ocr_config=None,
+    ocr_engine="tesseract",
+    inputocr_instance=None,
+    **kwargs,
 ):
     """
 
@@ -309,6 +317,18 @@ def ocr_image(
             output_type="data.frame",
         )
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
+
+        if os.path.isfile(imagepath):
+            os.remove(imagepath)
+            logger.info(f"Local file {imagepath} deleted")
+
+        if inputocr_instance is not None:
+            kwargs["ocr_output_model"].objects.create(
+                guid=inputocr_instance,
+                image_path=kwargs["cloud_imagepath"],
+                text=ocr_text,
+            )
+
     else:
         raise NotImplementedError(
             "No other OCR engine except tesseract is supported currently"

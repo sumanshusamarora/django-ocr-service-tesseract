@@ -20,6 +20,7 @@ from .token import create_auth_token
 
 logger = logging.getLogger(__name__)
 
+
 class GenerateToken(APIView):
     """
     API view to generate token
@@ -69,6 +70,7 @@ class GenerateOCR(APIView):
             )
 
         ocr_input_serializer_obj = OCRInputSerializer(data=data)
+
         if ocr_input_serializer_obj.is_valid(raise_exception=True):
             logger.info("Serializer is valid")
             try:
@@ -88,10 +90,12 @@ class GenerateOCR(APIView):
                 data=ocr_input_serializer_obj.errors, status=status.HTTP_400_BAD_REQUEST
             )
 
+
 class GetOCR(APIView):
     """
     Get OCR files and text by guid
     """
+
     authentication_classes = [ExpiringTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -109,7 +113,8 @@ class GetOCR(APIView):
         if not data.get("guid") and isinstance(data.get("guid"), str):
             logger.info("Invalid request, guid expected")
             return Response(
-                data={"guid":"Invalid request, guid expected"}, status=status.HTTP_400_BAD_REQUEST
+                data={"guid": "Invalid request, guid expected"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         else:
             try:
@@ -120,26 +125,30 @@ class GetOCR(APIView):
                     data={"guid": "Invalid guid"}, status=status.HTTP_400_BAD_REQUEST
                 )
             else:
-                output_objs = OCROutput.objects.filter(guid=input_obj).values("image_path", "text")
+                output_objs = OCROutput.objects.filter(guid=input_obj).values(
+                    "image_path", "text"
+                )
                 response_dict = {obj["image_path"]: obj["text"] for obj in output_objs}
 
-                if len(output_objs) == input_obj.page_count and input_obj.page_count > 0:
+                if (
+                    len(output_objs) == input_obj.page_count
+                    and input_obj.page_count > 0
+                ):
                     logger.info("OCR finished. Returning results")
                     stat = status.HTTP_200_OK
                 else:
                     logger.info("OCR not finished. Returning unfinished results")
                     stat = status.HTTP_202_ACCEPTED
 
+                return Response(data=response_dict, status=stat)
 
-                return Response(
-                    data=response_dict, status=stat
-                )
 
 class GenerateOCR_SNS(APIView):
     """
     View to enable POST method for text extraction
     """
-    message_type_header = 'HTTP_X_AMZ_SNS_MESSAGE_TYPE'
+
+    message_type_header = "HTTP_X_AMZ_SNS_MESSAGE_TYPE"
 
     def post(self, request):
         """
@@ -148,31 +157,37 @@ class GenerateOCR_SNS(APIView):
         :return:
         """
         if self.message_type_header in request.META:
-            payload = json.loads(request.body.decode('utf-8'))
+            payload = json.loads(request.body.decode("utf-8"))
             logger.info(f"Payload - {payload}")
             message_type = request.META[self.message_type_header]
-            if message_type == 'SubscriptionConfirmation':
+            if message_type == "SubscriptionConfirmation":
                 logger.info(f"It is a subscription record")
-                subscribe_url = payload.get('SubscribeURL')
+                subscribe_url = payload.get("SubscribeURL")
                 res = requests.get(subscribe_url)
                 if res.status_code != 200:
-                    logger.error('Failed to verify SNS Subscription', extra={
-                        'verification_reponse': res.content,
-                        'sns_payload': request.body,
-                    })
+                    logger.error(
+                        "Failed to verify SNS Subscription",
+                        extra={
+                            "verification_reponse": res.content,
+                            "sns_payload": request.body,
+                        },
+                    )
 
-                    return Response(data={'error':'Invalid verification:\n{0}'.format(res.content)},
-                        status=status.HTTP_400_BAD_REQUEST
+                    return Response(
+                        data={
+                            "error": "Invalid verification:\n{0}".format(res.content)
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
             else:
-                message = json.loads(payload.get('Message'))
+                message = json.loads(payload.get("Message"))
                 logger.info(f"Message received on SNS topic - {message}")
                 return self.handle_sns_message(message)
 
             return Response(status=status.HTTP_200_OK)
 
     def handle_sns_message(self, message):
-        model_obj = OCRInput.objects.create(cloud_storage_url_or_uri=message["data"]["uri"])
-        return Response(data={"guid":model_obj.guid}, status=status.HTTP_200_OK)
-
-
+        model_obj = OCRInput.objects.create(
+            guid=message["id"], cloud_storage_uri=message["data"]["uri"]
+        )
+        return Response(data={"guid": model_obj.guid}, status=status.HTTP_200_OK)

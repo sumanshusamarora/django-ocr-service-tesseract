@@ -37,6 +37,7 @@ from .help_testutils import (
 
 pytestmark = pytest.mark.django_db()
 
+
 @pytest.mark.parametrize(
     "filepath, output",
     [
