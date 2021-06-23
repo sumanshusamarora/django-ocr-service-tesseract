@@ -1,6 +1,8 @@
 """
 Define models to enable easy integration
 """
+import os
+from datetime import datetime, timezone
 import logging
 import uuid
 
@@ -11,6 +13,7 @@ from django.db import models
 from s3urls import parse_url
 import urllib
 
+from .apps import scheduler
 from . import (
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
@@ -48,7 +51,7 @@ class OCRInput(models.Model):
     filename = models.CharField(max_length=255, blank=True, null=True)
     ocr_config = models.CharField(max_length=255, blank=True, null=True)
     ocr_language = models.CharField(max_length=50, blank=True, null=True)
-    ocr_text = models.TextField(max_length=None, blank=True, null=True)
+    page_count = models.PositiveIntegerField(default=0)
     result_response = models.TextField(max_length=None, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
@@ -78,38 +81,61 @@ class OCRInput(models.Model):
                 f'Dropped input file {parsed_url_dict["key"]} in bucket {parsed_url_dict["bucket"]}'
             )
 
-    def _load_results_to_outputocr_model(self, output_dict: dict):
+    def _ocr_and_save_output(self, local_imagepath: str, cloud_imagepath: str):
         """
-        Load the results of OCR Input to OCROutput models
+
         :return:
         """
-        for key, val in output_dict.items():
-            OCROutput.objects.create(
-                guid=self,
-                image_path=key,
-                text=val,
-            )
+        logger.info(f"Preparing to run OCR on {local_imagepath}")
+        ocr_text = ocr_image(imagepath=local_imagepath)
+
+        if os.path.isfile(local_imagepath):
+            os.remove(local_imagepath)
+            logger.info(f"Local file {local_imagepath} deleted")
+
+        OCROutput.objects.create(
+            guid=self,
+            image_path=cloud_imagepath,
+            text=ocr_text,
+        )
+
+        if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
+            # Only delete input file if its a pdf since we convert it to images and re-upload it
+            # We don not want to duplicate the information
+            try:
+                self._delete_input_file()
+                logger.info("Input file deleted")
+            except:
+                logger.warning(
+                    "Error dropping input file. Does the application have access to location?"
+                )
+
+        return ocr_text
+
 
     def _do_ocr(self):
         """
         Perform OCR on input file
         :return:
         """
-        input_is_image = False
+        self.input_is_image = False
         try:
             image_filepaths = []
-            ocr_text_list = []
 
             if self.file.name:
                 filepath = self.file.url
+                logger.info(f"Uploaded file url - {filepath}")
             else:
                 filepath = self.cloud_storage_url_or_uri
+                logger.info(f"Stored file url - {filepath}")
 
             filepath = urllib.parse.unquote(filepath)
 
             local_filepath = download_locally_if_cloud_storage_path(
                 filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
             )
+
+            logger.info(f"File {filepath} downloaded locally")
 
             if is_pdf(local_filepath):
                 image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
@@ -132,35 +158,33 @@ class OCRInput(models.Model):
             elif is_image(local_filepath):
                 image_filepaths = [local_filepath]
                 cloud_storage_object_paths = [filepath]
-                input_is_image = True
+                self.input_is_image = True
+
+            self.result_response = {"guid": self.guid}
+            self.page_count = len(image_filepaths)
 
             if image_filepaths:
-                output_dict = dict()
                 for index, image in enumerate(image_filepaths):
-                    ocr_text = ocr_image(imagepath=image)
-                    ocr_text_list.append(ocr_text)
-                    output_dict[cloud_storage_object_paths[index]] = ocr_text
+                    kw_args = {"local_imagepath": image, "cloud_imagepath": cloud_storage_object_paths[index]},
+                    args = [image, cloud_storage_object_paths[index]]
+                    if settings.USE_ASYNC_TO_UPLOAD_FILES:
+                        scheduler.add_job(
+                            func=self._ocr_and_save_output,
+                            trigger="date",
+                            run_date=datetime.now(timezone.utc),
+                            name=f"{self.guid}-{image}",
+                            args=args,
+                            misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
+                            jobstore="default"
+                        )
+                    else:
+                        self._ocr_and_save_output(**kw_args)
 
-                self.ocr_text = "\n".join(ocr_text_list)
-                self.result_response = output_dict
-                self._load_results_to_outputocr_model(output_dict)
 
         except Exception as exception:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
             raise exception
-        else:
-            purge_directory(settings.LOCAL_FILES_SAVE_DIR)
-            # Drop input file post processing
-            if settings.DROP_INPUT_FILE_POST_PROCESSING and not input_is_image:
-                # Only delete input file if its a pdf since we convert it to images and re-upload it
-                # We don not want to duplicate the information
-                try:
-                    self._delete_input_file()
-                    logger.info("Input file deleted")
-                except:
-                    logger.warning(
-                        "Error dropping input file. Does the application have access to location?"
-                    )
+
 
     def save(self, *args, **kwargs):
         """
@@ -181,8 +205,9 @@ class OCRInput(models.Model):
             self.cloud_storage_url_or_uri = self.file.url
 
         super(OCRInput, self).save()
-
+        logger.info("Starting OCR process now")
         self._do_ocr()
+        logger.info("OCR process finished, saving model object again")
 
         super(OCRInput, self).save()
 

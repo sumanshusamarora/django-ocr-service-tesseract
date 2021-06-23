@@ -7,8 +7,9 @@ import logging
 
 import cv2
 from django.conf import settings
-import pandas as pd
+import multiprocessing
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from pdf2image import convert_from_path
 from PyPDF2 import PdfFileReader
@@ -129,9 +130,13 @@ def pdf_to_image(
 
     Path(output_folder).mkdir(parents=True, exist_ok=True)
     # Remove all files from output_dir to keep the container space in limit
-
+    logger.info(f"Converting pdf to images using {multiprocessing.cpu_count()} threads")
     images = convert_from_path(
-        pdf_path, dpi=dpi, output_folder=output_folder, fmt=fmt, paths_only=True
+        pdf_path,
+        dpi=dpi,
+        output_folder=output_folder,
+        fmt=fmt, paths_only=True,
+        thread_count=multiprocessing.cpu_count(),
     )
     logger.info(f"{len(images)} images stored at {output_folder}")
 
