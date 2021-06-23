@@ -22,6 +22,7 @@ dependencies:
   - uvicorn
   - gunicorn
   - pandas
+  - requests
   - pip:
       - django-expiring-token
       - django-storages
