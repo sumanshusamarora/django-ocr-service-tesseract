@@ -187,6 +187,8 @@ class OCRInput(models.Model):
         if not self.guid:
             self.guid = uuid.uuid4().hex
 
+        logger.info(f"Cloud Log: Input GUID - {self.guid}")
+
         if self.cloud_storage_uri:
             parsed_uri_dict = parse_url(self.cloud_storage_uri)
             self.bucket_name = parsed_uri_dict["bucket"]
@@ -199,6 +201,7 @@ class OCRInput(models.Model):
         logger.info("Starting OCR process now")
         self._do_ocr()
         logger.info("OCR process finished, saving model object again")
+        logger.info(f"Cloud Log: Output GUID - {self.guid}")
 
         super(OCRInput, self).save()
 

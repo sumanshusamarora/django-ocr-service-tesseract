@@ -36,3 +36,4 @@ config/config.local.yml
 django_ocr_service/media/input_files/*.pdf
 
 *.ignore
+django_ocr_service/tests/api_call_requests.py

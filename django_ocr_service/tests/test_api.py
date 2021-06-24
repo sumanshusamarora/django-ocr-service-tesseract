@@ -8,8 +8,8 @@ from django.conf import settings  # Being used by a test. Do not remove settings
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django_expiring_token.models import ExpiringToken
-from s3urls import parse_url
 import pytest
+from s3urls import parse_url
 
 from ocr import (
     delete_objects_from_cloud_storage,
