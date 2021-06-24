@@ -112,7 +112,7 @@ class OCRInput(models.Model):
                 image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
                     pdf_path=local_filepath,
                     save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
-                    use_async_to_upload=settings.USE_ASYNC_TO_UPLOAD_FILES,
+                    use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
                 )
                 # Below line allows getting the upload paths even if upload to cloud storage
                 #  not finished due to threading workers still finishing their jobs
@@ -144,7 +144,7 @@ class OCRInput(models.Model):
                         "ocr_output_model": OCROutput,
                     }
 
-                    if settings.USE_ASYNC_TO_UPLOAD_FILES:
+                    if settings.USE_BACKGROUND_TASK_FOR_SPEED:
                         scheduler.add_job(
                             func=ocr_image,
                             trigger="date",

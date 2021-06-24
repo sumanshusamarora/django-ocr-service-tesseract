@@ -143,7 +143,7 @@ def load_from_cloud_storage_and_save(
     return save_path
 
 
-def delete_objects_from_cloud_storage(keys, bucket: str):
+def delete_objects_from_cloud_storage(keys, bucket: str = None):
     """
 
     :param obj: Object path

@@ -105,10 +105,10 @@ class GetOCR(APIView):
         :param request:
         :return:
         """
-        if isinstance(request.data, QueryDict):
-            data = request.data.dict()
+        if isinstance(request.query_params, QueryDict):
+            data = request.query_params.dict()
         else:  # Handles test case when data is passed as dict
-            data = request.data
+            data = request.query_params
 
         if not data.get("guid") and isinstance(data.get("guid"), str):
             logger.info("Invalid request, guid expected")
