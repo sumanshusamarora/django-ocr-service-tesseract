@@ -35,9 +35,6 @@ from .help_testutils import (
     UploadDeleteTestFile,
 )
 
-pytestmark = pytest.mark.django_db()
-
-
 @pytest.mark.parametrize(
     "filepath, output",
     [
@@ -46,6 +43,7 @@ pytestmark = pytest.mark.django_db()
         (os.path.join(TEST_DIR, os.listdir(TEST_DIR)[0]), False),
     ],
 )
+
 def test_is_pdf(filepath, output):
     """
 
@@ -327,7 +325,7 @@ def test_pdf_to_image_save_to_cloud_append_datetime():
         and datetime.now().date().__str__() in cloud_stroage_paths[0]
     )
 
-
+@pytest.mark.django_db(transaction=True)
 def test_pdf_to_image_save_to_cloud_async():
     """
 
@@ -433,6 +431,7 @@ def test_ocr_image():
         preprocess=True,
         ocr_config=None,
         ocr_engine="tesseract",
+        drop_image=False,
     )
     assert isinstance(out, str)
 
@@ -447,6 +446,7 @@ def test_ocr_image_no_preprocess():
         preprocess=False,
         ocr_config=None,
         ocr_engine="tesseract",
+        drop_image=False,
     )
     assert isinstance(out, str)
 
@@ -461,23 +461,9 @@ def test_ocr_image_manual_ocr_config():
         preprocess=False,
         ocr_config="--psm 4 --oem 3",
         ocr_engine="tesseract",
+        drop_image=False,
     )
     assert isinstance(out, str)
-
-
-def test_ocr_image_manual_ocr_config():
-    """
-
-    :return:
-    """
-    with pytest.raises((NotImplementedError)):
-        _ = ocr_image(
-            imagepath=TESTFILE_IMAGE_PATH,
-            preprocess=False,
-            ocr_config="--psm 4",
-            ocr_engine="something",
-        )
-
 
 def test_generate_text_from_ocr_output():
     """

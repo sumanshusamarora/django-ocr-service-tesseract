@@ -285,8 +285,9 @@ def build_tesseract_ocr_config(
 def ocr_image(
     imagepath: str,
     preprocess: bool = True,
-    ocr_config=None,
-    ocr_engine="tesseract",
+    ocr_config: str=None,
+    ocr_engine: str="tesseract",
+    drop_image: bool = True,
     inputocr_instance=None,
     **kwargs,
 ):
@@ -318,7 +319,7 @@ def ocr_image(
         )
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 
-        if os.path.isfile(imagepath):
+        if drop_image and os.path.isfile(imagepath):
             os.remove(imagepath)
             logger.info(f"Local file {imagepath} deleted")
 

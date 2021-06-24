@@ -1,3 +1,4 @@
 config/config.yml
 config/config.local.yml
 .pre-commit-hooks.yaml
+django_ocr_service/htmlcov

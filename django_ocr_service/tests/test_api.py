@@ -24,7 +24,6 @@ from .help_testutils import (
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
-
 class TestGetTokenAPI:
     """ """
 
@@ -62,7 +61,6 @@ class TestGetTokenAPI:
             "/api/get-token/", content_type="application/json"
         )
         assert response.status_code == 401
-
 
 class TestPostOCR:
     """ """
@@ -269,3 +267,74 @@ class TestGetOCR:
                 os.path.split(self.upload_delete.filepath)[-1] in key
                 for key in get_ocr_response_dict_keys] if not val])
         )
+
+class TestAPINegativeScenarios:
+
+    def setup_method(self):
+        """
+
+        :return:
+        """
+        (
+            self.django_client,
+            self.user,
+            self.token_true,
+        ) = create_rest_user_login_generate_token()
+
+
+    def test_post_ocr_without_data(self):
+        """
+
+        :return:
+        """
+        self.django_client.force_authenticate(user=self.user)
+        token_response = self.django_client.get(
+            "/api/get-token/", content_type="application/json"
+        )
+        token = token_response.data["token"]
+        self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
+        response = self.django_client.post("/api/ocr/")
+
+        assert response.status_code == 400 and response.json()["Error"] == "File input required"
+
+    def test_post_ocr_wrong_data(self):
+        """
+
+        :return:
+        """
+        self.django_client.force_authenticate(user=self.user)
+        token_response = self.django_client.get(
+            "/api/get-token/", content_type="application/json"
+        )
+        token = token_response.data["token"]
+        self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
+        response = self.django_client.post("/api/ocr/", data={"file":"string"})
+        assert response.status_code == 400 and isinstance(response.json()['file'], list)
+
+    def test_get_ocr_no_guid(self):
+        """
+
+        :return:
+        """
+        self.django_client.force_authenticate(user=self.user)
+        token_response = self.django_client.get(
+            "/api/get-token/", content_type="application/json"
+        )
+        token = token_response.data["token"]
+        self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
+        response = self.django_client.get("/api/get-ocr/")
+        assert response.status_code == 400 and response.json() == {"guid": "Invalid request, guid expected"}
+
+    def test_get_ocr_wrong_guid_value(self):
+        """
+
+        :return:
+        """
+        self.django_client.force_authenticate(user=self.user)
+        token_response = self.django_client.get(
+            "/api/get-token/", content_type="application/json"
+        )
+        token = token_response.data["token"]
+        self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
+        response = self.django_client.get("/api/get-ocr/", {"guid": "string"})
+        assert response.status_code == 400 and response.json()["guid"].startswith("Invalid guid")
