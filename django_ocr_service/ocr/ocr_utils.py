@@ -1,7 +1,7 @@
 """
 Common OCR utils
 """
-from datetime import datetime, timezone
+from datetime import datetime
 import os
 import logging
 
@@ -16,7 +16,6 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
-from .apps import scheduler
 from . import (
     generate_cloud_storage_key,
     is_cloud_storage,
@@ -160,17 +159,15 @@ def pdf_to_image(
                 cloud_storage_objects_kw_args.append(kw_args)
 
                 logging.info("Starting image upload")
+
+                from django_q.tasks import async_task
+
                 if use_async_to_upload:
                     logging.info("Uploading to cloud through background job")
-                    scheduler.add_job(
-                        func=upload_to_cloud_storage,
-                        trigger="date",
-                        run_date=datetime.now(timezone.utc),
-                        name=f"{kw_args['prefix']}-{kw_args['key']}",
-                        kwargs=kw_args,
-                        misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
-                        jobstore="default",
-                    )
+                    async_task(upload_to_cloud_storage,
+                               task_name=f"{kw_args['prefix']}-{kw_args['key']}",
+                               **kw_args)
+
                     cloud_storage_path = generate_cloud_storage_key(
                         path=kw_args["path"],
                         key=kw_args["key"],
@@ -280,7 +277,6 @@ def build_tesseract_ocr_config(
     ocr_config = " ".join(config_list) if config_list else None
 
     return ocr_config
-
 
 def ocr_image(
     imagepath: str,
