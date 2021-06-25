@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import Client
 from rest_framework.test import APIClient
+import subprocess
 
 from ocr import (
     delete_objects_from_cloud_storage,
@@ -95,3 +96,26 @@ class UploadDeleteTestFile:
             keys=self.cloud_upload_path,
             bucket=self.bucket,
         )
+
+
+class QCluster:
+    def __init__(self):
+        """
+
+        """
+        from django_q.cluster import Cluster
+        self.q = Cluster()
+
+    def start(self):
+        """
+
+        :return:
+        """
+        self.q.start()
+
+    def stop(self):
+        """
+
+        :return:
+        """
+        self.q.stop()
