@@ -84,7 +84,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_expiring_token",
     "storages",
-    "django_apscheduler",
+    "django_q",
 ]
 
 MIDDLEWARE = [
@@ -129,7 +129,6 @@ WSGI_APPLICATION = "django_ocr_service.wsgi.application"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = config["DATABASES"]
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -180,6 +179,18 @@ STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 
 ALLOWED_STORAGES = ["s3"]
 
-APSCHEDULER_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-APSCHEDULER_RUN_NOW_TIMEOUT = 24*60*60
-SCHEDULER_AUTOSTART = False
+Q_CLUSTER = {
+    'name': 'django_ocr_service_q',
+    'workers': 4,
+    'recycle': 500,
+    'timeout': 240,
+    'ack_failures': True,
+    'max_attempts':10,
+    'retry': 300,
+    'queue_limit': 500,
+    'bulk': 10,
+    'compress': False,
+    'orm': 'default',
+    'has_replica': True,
+}
+
