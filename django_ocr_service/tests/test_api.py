@@ -20,6 +20,7 @@ from .help_testutils import (
     create_rest_user_login_generate_token,
     TESTFILE_PDF_PATH,
     UploadDeleteTestFile,
+    QCluster,
 )
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -77,6 +78,8 @@ class TestPostOCR:
         ) = create_rest_user_login_generate_token()
         self.upload_delete = UploadDeleteTestFile()
         self.uploaded_filepath = self.upload_delete.upload_test_file_to_cloud_storage()
+        self.q_cluster = QCluster()
+        self.q_cluster.start()
 
     def teardown_method(self):
         """
@@ -84,6 +87,7 @@ class TestPostOCR:
         :return:
         """
         self.upload_delete.drop_test_file_from_cloud_storage()
+        self.q_cluster.stop()
 
     def test_post_ocr_unauthenticated(self):
         """
@@ -116,7 +120,6 @@ class TestPostOCR:
         ocrinput_objs = OCRInput.objects.all().first()
         time.sleep(5)
         ocroutput_objs = OCROutput.objects.filter(guid=ocrinput_objs)
-
         # Delete object from cloud so we do not overload our cloud bucket
         delete_objects_from_cloud_storage(
             keys=[parse_url(obj.image_path)["key"] for obj in ocroutput_objs]
@@ -146,7 +149,6 @@ class TestPostOCR:
         upload_file = SimpleUploadedFile(
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
-
         response = self.django_client.post(
             "/api/ocr/",
             data={"file": upload_file},
@@ -232,6 +234,16 @@ class TestGetOCR:
         ) = create_rest_user_login_generate_token()
         self.upload_delete = UploadDeleteTestFile()
         self.uploaded_filepath = self.upload_delete.upload_test_file_to_cloud_storage()
+        self.q_cluster = QCluster()
+        self.q_cluster.start()
+
+    def teardown_method(self):
+        """
+
+        :return:
+        """
+        self.upload_delete.drop_test_file_from_cloud_storage()
+        self.q_cluster.stop()
 
     def test_get_ocr(self):
         """
