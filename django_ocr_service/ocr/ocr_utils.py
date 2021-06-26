@@ -313,18 +313,20 @@ def ocr_image(
             lang=ocr_language,
             output_type="data.frame",
         )
+        logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
-
         if drop_image and os.path.isfile(imagepath):
             os.remove(imagepath)
             logger.info(f"Local file {imagepath} deleted")
 
         if inputocr_instance is not None:
+            logger.info(f"Saving OCR output to DB for {imagepath}")
             kwargs["ocr_output_model"].objects.create(
                 guid=inputocr_instance,
                 image_path=kwargs["cloud_imagepath"],
                 text=ocr_text,
             )
+            logger.info(f"OCR output saved to DB for {imagepath}")
 
     else:
         raise NotImplementedError(

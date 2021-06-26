@@ -185,9 +185,9 @@ MONGO_PASSWORD = urllib.parse.quote(config.get("MONGO_PASSWORD"))
 
 Q_CLUSTER = {
     'name': 'django_ocr_service_q',
-    'workers': 4,
+    'workers': 10,
     'recycle': 500,
-    'timeout': 240,
+    'timeout': None,
     'ack_failures': True,
     'max_attempts':10,
     'retry': 300,
