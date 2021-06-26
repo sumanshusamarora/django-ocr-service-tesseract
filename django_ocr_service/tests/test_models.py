@@ -15,7 +15,11 @@ from ocr import (
     delete_objects_from_cloud_storage,
 )
 from ocr.models import OCRInput, OCROutput
-from .help_testutils import TESTFILE_PDF_PATH, TESTFILE_IMAGE_PATH
+from .help_testutils import (
+    TESTFILE_PDF_PATH,
+    TESTFILE_IMAGE_PATH,
+    QCluster,
+)
 
 pytestmark = pytest.mark.django_db(transaction=True)
 

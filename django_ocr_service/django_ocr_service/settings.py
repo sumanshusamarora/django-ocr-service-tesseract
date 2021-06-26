@@ -14,6 +14,7 @@ import logging.config
 import os
 
 from pathlib import Path
+import urllib
 import yaml
 
 from . import config
@@ -179,6 +180,9 @@ STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 
 ALLOWED_STORAGES = ["s3"]
 
+MONGO_USER = urllib.parse.quote(config.get("MONGO_USER"))
+MONGO_PASSWORD = urllib.parse.quote(config.get("MONGO_PASSWORD"))
+
 Q_CLUSTER = {
     'name': 'django_ocr_service_q',
     'workers': 4,
@@ -190,7 +194,12 @@ Q_CLUSTER = {
     'queue_limit': 500,
     'bulk': 10,
     'compress': False,
-    'orm': 'default',
-    'has_replica': True,
+    'label': 'django_ocr_service_q',
+    'mongo': {
+            'host': f'mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@cluster0.chvjq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
+    }
 }
 
+if os.path.isfile("/home/sam/work/shore-cap-ocr-service/django_ocr_service/tests/.monkeypatch"):
+    Q_CLUSTER["SYNC"] = True
+    DATABASES["default"]["NAME"] = "test_"+DATABASES["default"]["NAME"]

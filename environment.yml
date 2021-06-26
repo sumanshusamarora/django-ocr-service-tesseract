@@ -23,9 +23,11 @@ dependencies:
   - gunicorn
   - pandas
   - requests
+  - pymongo
+  - dnspython
   - pip:
       - django-expiring-token
       - django-storages
       - s3urls
       - aioboto3
-      - django-apscheduler
+      - django-q
