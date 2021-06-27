@@ -283,7 +283,6 @@ def ocr_image(
     preprocess: bool = True,
     ocr_config: str=None,
     ocr_engine: str="tesseract",
-    drop_image: bool = True,
     inputocr_instance=None,
     **kwargs,
 ):
@@ -315,9 +314,6 @@ def ocr_image(
         )
         logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
-        if drop_image and os.path.isfile(imagepath):
-            os.remove(imagepath)
-            logger.info(f"Local file {imagepath} deleted")
 
         if inputocr_instance is not None:
             logger.info(f"Saving OCR output to DB for {imagepath}")

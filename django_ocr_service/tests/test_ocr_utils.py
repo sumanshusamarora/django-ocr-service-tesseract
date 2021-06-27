@@ -431,7 +431,6 @@ def test_ocr_image():
         preprocess=True,
         ocr_config=None,
         ocr_engine="tesseract",
-        drop_image=False,
     )
     assert isinstance(out, str)
 
@@ -446,7 +445,6 @@ def test_ocr_image_no_preprocess():
         preprocess=False,
         ocr_config=None,
         ocr_engine="tesseract",
-        drop_image=False,
     )
     assert isinstance(out, str)
 
@@ -461,7 +459,6 @@ def test_ocr_image_manual_ocr_config():
         preprocess=False,
         ocr_config="--psm 4 --oem 3",
         ocr_engine="tesseract",
-        drop_image=False,
     )
     assert isinstance(out, str)
 
