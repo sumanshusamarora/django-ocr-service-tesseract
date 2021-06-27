@@ -63,4 +63,4 @@ WORKDIR /SRC/django_ocr_service
 
 EXPOSE 8080
 
-CMD bash startapp.sh
+CMD ["/bin/bash", "startapp.sh"]

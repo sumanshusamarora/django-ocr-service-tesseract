@@ -180,26 +180,23 @@ STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 
 ALLOWED_STORAGES = ["s3"]
 
-MONGO_USER = urllib.parse.quote(config.get("MONGO_USER"))
-MONGO_PASSWORD = urllib.parse.quote(config.get("MONGO_PASSWORD"))
-
 Q_CLUSTER = {
-    'name': 'django_ocr_service_q',
+    'name': 'django_ocr_service',
     'workers': 10,
-    'recycle': 500,
-    'timeout': None,
+    'recycle': 1000,
+    'timeout': 600*60*60,
+    'retry': 600*60*60+10,
     'ack_failures': True,
-    'max_attempts':10,
-    'retry': 300,
-    'queue_limit': 500,
+    'max_attempts':5,
+    'queue_limit': 1000,
     'bulk': 10,
     'compress': False,
-    'label': 'django_ocr_service_q',
+    'label': 'Django Q',
     'mongo': {
-            'host': f'mongodb+srv://{MONGO_USER}:{MONGO_PASSWORD}@cluster0.chvjq.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
-    }
+        'host': 'mongodb://ec2-34-209-32-107.us-west-2.compute.amazonaws.com',
+        'port': 27017,
+        'username': config.get("MONGO_USER"),
+        'password': config.get("MONGO_PASSWORD"),
+    },
+    'mongo_db': 'django_q_db'
 }
-
-if os.path.isfile("/home/sam/work/shore-cap-ocr-service/django_ocr_service/tests/.monkeypatch"):
-    Q_CLUSTER["SYNC"] = True
-    DATABASES["default"]["NAME"] = "test_"+DATABASES["default"]["NAME"]

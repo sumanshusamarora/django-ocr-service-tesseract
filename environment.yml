@@ -4,7 +4,6 @@ channels:
   - defaults
 dependencies:
   - django=3.2
-  - kafka-python=2.0.2
   - pip=21.1
   - psycopg2=2.8
   - python=3.9
@@ -24,7 +23,7 @@ dependencies:
   - pandas
   - requests
   - pymongo
-  - dnspython
+  - dnspython=1.16
   - pip:
       - django-expiring-token
       - django-storages
