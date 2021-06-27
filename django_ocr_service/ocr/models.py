@@ -85,88 +85,83 @@ class OCRInput(models.Model):
         :return:
         """
         self.input_is_image = False
-        try:
-            image_filepaths = []
+        image_filepaths = []
 
-            if self.file.name:
-                filepath = self.file.url
-                logger.info(f"Uploaded file - {filepath}")
-            else:
-                self.cloud_storage_uri = unquote(unquote_plus(self.cloud_storage_uri))
-                filepath = unquote(unquote_plus(self.cloud_storage_uri))
-                logger.info(f"Stored file uri - {filepath}")
+        if self.file.name:
+            filepath = self.file.url
+            logger.info(f"Uploaded file - {filepath}")
+        else:
+            self.cloud_storage_uri = unquote(unquote_plus(self.cloud_storage_uri))
+            filepath = unquote(unquote_plus(self.cloud_storage_uri))
+            logger.info(f"Stored file uri - {filepath}")
 
-            local_filepath = download_locally_if_cloud_storage_path(
-                filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
+        local_filepath = download_locally_if_cloud_storage_path(
+            filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
+        )
+
+        if not isinstance(local_filepath, str):
+            logger.info("File download failed")
+            return
+        else:
+            logger.info(f"File {filepath} downloaded locally")
+
+        if is_pdf(local_filepath):
+            image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
+                pdf_path=local_filepath,
+                save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
+                use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
             )
-
-            if not isinstance(local_filepath, str):
-                logger.info("File download failed")
-                return
-            else:
-                logger.info(f"File {filepath} downloaded locally")
-
-            if is_pdf(local_filepath):
-                image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
-                    pdf_path=local_filepath,
-                    save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
-                    use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
+            # Below line allows getting the upload paths even if upload to cloud storage
+            #  not finished due to threading workers still finishing their jobs
+            cloud_storage_object_paths = [
+                generate_cloud_storage_key(
+                    path=kw_args["path"],
+                    key=kw_args["key"],
+                    prefix=kw_args["prefix"],
+                    append_datetime=kw_args["append_datetime"],
                 )
-                # Below line allows getting the upload paths even if upload to cloud storage
-                #  not finished due to threading workers still finishing their jobs
-                cloud_storage_object_paths = [
-                    generate_cloud_storage_key(
-                        path=kw_args["path"],
-                        key=kw_args["key"],
-                        prefix=kw_args["prefix"],
-                        append_datetime=kw_args["append_datetime"],
+                for kw_args in cloud_storage_objects_kw_args
+            ]
+
+        elif is_image(local_filepath):
+            image_filepaths = [local_filepath]
+            cloud_storage_object_paths = [filepath]
+            self.input_is_image = True
+
+        if image_filepaths:
+            for index, image in enumerate(image_filepaths):
+                kw_args = {
+                    "imagepath": image,
+                    "preprocess": True,
+                    "inputocr_instance": self,
+                    "cloud_imagepath": cloud_storage_object_paths[index],
+                    "ocr_output_model": OCROutput,
+                }
+
+                if settings.USE_BACKGROUND_TASK_FOR_SPEED:
+                    from django_q.tasks import async_task
+                    async_task(ocr_image,
+                               task_name=f"{self.guid}-{image}",
+                               **kw_args)
+                else:
+                    ocr_image(**kw_args)
+
+            if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
+                # Only delete input file if its a pdf since we convert it to images and re-upload it
+                # We don not want to duplicate the information
+                logger.info(
+                    f"Settings to drop input file is {settings.DROP_INPUT_FILE_POST_PROCESSING} and input is not an image so dropping input file"
+                )
+                try:
+                    self._delete_input_file()
+                    logger.info("Input file deleted")
+                except:
+                    logger.warning(
+                        "Error dropping input file. Does the application have access to location?"
                     )
-                    for kw_args in cloud_storage_objects_kw_args
-                ]
 
-            elif is_image(local_filepath):
-                image_filepaths = [local_filepath]
-                cloud_storage_object_paths = [filepath]
-                self.input_is_image = True
-
-            if image_filepaths:
-                for index, image in enumerate(image_filepaths):
-                    kw_args = {
-                        "imagepath": image,
-                        "preprocess": True,
-                        "inputocr_instance": self,
-                        "cloud_imagepath": cloud_storage_object_paths[index],
-                        "ocr_output_model": OCROutput,
-                    }
-
-                    if settings.USE_BACKGROUND_TASK_FOR_SPEED:
-                        from django_q.tasks import async_task
-                        async_task(ocr_image,
-                                   task_name=f"{self.guid}-{image}",
-                                   **kw_args)
-                    else:
-                        ocr_image(**kw_args)
-
-                if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
-                    # Only delete input file if its a pdf since we convert it to images and re-upload it
-                    # We don not want to duplicate the information
-                    logger.info(
-                        f"Settings to drop input file is {settings.DROP_INPUT_FILE_POST_PROCESSING} and input is not an image so dropping input file"
-                    )
-                    try:
-                        self._delete_input_file()
-                        logger.info("Input file deleted")
-                    except:
-                        logger.warning(
-                            "Error dropping input file. Does the application have access to location?"
-                        )
-
-            self.result_response = {"guid": self.guid}
-            self.page_count = len(image_filepaths)
-
-        except Exception as exception:
-            purge_directory(settings.LOCAL_FILES_SAVE_DIR)
-            raise exception
+        self.result_response = {"guid": self.guid}
+        self.page_count = len(image_filepaths)
 
     def save(self, *args, **kwargs):
         """
