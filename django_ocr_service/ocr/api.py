@@ -106,6 +106,29 @@ class GetOCR(APIView):
     authentication_classes = [ExpiringTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def _generate_api_response_status(self, input_obj, output_objs):
+        """
+
+        :return:
+        """
+        if input_obj.page_count > 0:
+
+            if len(output_objs) == input_obj.page_count:
+                logger.info("OCR finished. Returning results")
+                stat = status.HTTP_200_OK
+
+            elif (
+                    len(output_objs) != input_obj.page_count
+                    and len(output_objs) > 0
+            ):  # pragma: no cover
+                logger.info("OCR not finished. Returning unfinished results")
+                stat = status.HTTP_206_PARTIAL_CONTENT
+            elif len(output_objs) == 0:  # pragma: no cover
+                logger.info("No OCR output found. Have you waited enough?")
+                stat = status.HTTP_204_NO_CONTENT
+
+        return stat
+
     def get(self, request):
         """
 
@@ -136,16 +159,7 @@ class GetOCR(APIView):
                     "image_path", "text"
                 )
                 response_dict = {obj["image_path"]: obj["text"] for obj in output_objs}
-
-                if (
-                    len(output_objs) == input_obj.page_count
-                    and input_obj.page_count > 0
-                ):
-                    logger.info("OCR finished. Returning results")
-                    stat = status.HTTP_200_OK
-                else: #pragma: no cover
-                    logger.info("OCR not finished. Returning unfinished results")
-                    stat = status.HTTP_202_ACCEPTED
+                stat = self._generate_api_response_status(input_obj, output_objs)
 
                 return Response(data=response_dict, status=stat)
 
