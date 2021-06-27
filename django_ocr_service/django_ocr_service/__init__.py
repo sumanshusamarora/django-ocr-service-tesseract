@@ -126,6 +126,18 @@ if config.get("SAVE_IMAGES_TO_CLOUD") is None:
 
 
 # MONGO
+if os.environ.get("MONGO_HOST"):
+    config["MONGO_HOST"] = os.environ.get("MONGO_HOST")
+
+config["MONGO_HOST"] = "mongodb://"+config["MONGO_HOST"].replace("mongodb://", "")
+
+if os.environ.get("MONGO_PORT"):
+    config["MONGO_PORT"] = int(os.environ.get("MONGO_PORT"))
+
+if not config.get("MONGO_PORT"):
+    config["MONGO_PORT"] = 27017
+
+
 if os.environ.get("MONGO_USER"):
     config["MONGO_USER"] = os.environ.get("MONGO_USER")
 
@@ -138,3 +150,16 @@ if os.environ.get("SECRET_KEY"):
 
 if not config.get("SECRET_KEY"):
     config["SECRET_KEY"] = uuid.uuid4().hex
+
+if os.environ.get("DELETE_OLD_IMAGES_DAYS"):
+    config["DELETE_OLD_IMAGES_DAYS"] = int(os.environ.get("DELETE_OLD_IMAGES_DAYS"))
+
+if not config.get("DELETE_OLD_IMAGES_DAYS"):
+    config["DELETE_OLD_IMAGES_DAYS"] = 2
+
+
+if os.environ.get("LOCAL_FILES_SAVE_DIR"):
+    config["LOCAL_FILES_SAVE_DIR"] = os.environ.get("LOCAL_FILES_SAVE_DIR")
+
+if not config.get("LOCAL_FILES_SAVE_DIR"):
+    config["LOCAL_FILES_SAVE_DIR"] = "/tmp/ocr_inputs"
