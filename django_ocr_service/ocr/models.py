@@ -20,7 +20,6 @@ from . import (
     is_cloud_storage,
     ocr_image,
     pdf_to_image,
-    purge_directory,
 )
 
 logger = logging.getLogger(__name__)

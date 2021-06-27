@@ -58,21 +58,6 @@ def is_image(filepath: str):
     return False
 
 
-def purge_directory(dirpath: str):
-    """
-    Removes all filed in a directory
-    :param dirpath:
-    :return:
-    """
-    for filename in os.listdir(dirpath):
-        file_path = os.path.join(dirpath, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print("Failed to delete %s. Reason: %s" % (file_path, e))
-
-
 def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
     """
 

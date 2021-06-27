@@ -17,7 +17,6 @@ from ocr.ocr_utils import (
     build_tesseract_ocr_config,
     is_pdf,
     is_image,
-    purge_directory,
     download_locally_if_cloud_storage_path,
     pdf_to_image,
     generate_text_from_ocr_output,
@@ -66,44 +65,6 @@ def test_is_image(filepath, output):
     :return:
     """
     assert is_image(filepath) == output
-
-
-def test_purge_directory():
-    """
-
-    :return:
-    """
-    # Setup
-    dir_path = "/tmp/test_data"
-    if os.path.isdir(dir_path):
-        shutil.rmtree(dir_path)
-    os.makedirs(dir_path, exist_ok=True)
-    random_number = random.randint(1, 5)
-    temp_files_list = []
-    for index in range(random_number):
-        temp_file = tempfile.NamedTemporaryFile(
-            delete=False,
-            dir=dir_path,
-            suffix=".png",
-        )
-        temp_files_list.append(temp_file)
-    # Test
-    before_purge = 0
-    for file in temp_files_list:
-        if os.path.isfile(file.name):
-            before_purge += 1
-
-    purge_directory(dir_path)
-
-    after_purge = 0
-    for file in temp_files_list:
-        if os.path.isfile(file.name):
-            after_purge += 1
-
-    # Teardown
-    shutil.rmtree(dir_path)
-    assert before_purge == random_number and after_purge == 0 and before_purge > 0
-
 
 def test_download_locally_if_cloud_storage_path():
     """
