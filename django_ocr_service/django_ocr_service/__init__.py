@@ -23,10 +23,6 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, config_filename)
 with open(CONFIG_FILE, "r") as configfile:
     config = yaml.safe_load(configfile)
 
-# Secret Key
-if not config.get("SECRET_KEY"):
-    config["SECRET_KEY"] = uuid.uuid4().hex
-
 # DEBUG
 if os.environ.get("DEBUG"):
     config["DEBUG"] = ast.literal_eval(os.environ.get("DEBUG"))
@@ -127,3 +123,18 @@ if config.get("DROP_INPUT_FILE_POST_PROCESSING") is None:
 
 if config.get("SAVE_IMAGES_TO_CLOUD") is None:
     config["SAVE_IMAGES_TO_CLOUD"] = True
+
+
+# MONGO
+if os.environ.get("MONGO_USER"):
+    config["MONGO_USER"] = os.environ.get("MONGO_USER")
+
+if os.environ.get("MONGO_PASSWORD"):
+    config["MONGO_PASSWORD"] = os.environ.get("MONGO_PASSWORD")
+
+# Secret Key
+if os.environ.get("SECRET_KEY"):
+    config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+
+if not config.get("SECRET_KEY"):
+    config["SECRET_KEY"] = uuid.uuid4().hex

@@ -14,6 +14,7 @@ import logging.config
 import os
 
 from pathlib import Path
+import urllib
 import yaml
 
 from . import config
@@ -84,7 +85,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "django_expiring_token",
     "storages",
-    "django_apscheduler",
+    "django_q",
 ]
 
 MIDDLEWARE = [
@@ -129,7 +130,6 @@ WSGI_APPLICATION = "django_ocr_service.wsgi.application"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = config["DATABASES"]
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -180,6 +180,23 @@ STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 
 ALLOWED_STORAGES = ["s3"]
 
-APSCHEDULER_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-APSCHEDULER_RUN_NOW_TIMEOUT = 24*60*60
-SCHEDULER_AUTOSTART = False
+Q_CLUSTER = {
+    'name': 'django_ocr_service',
+    'workers': 10,
+    'recycle': 1000,
+    'timeout': 600*60*60,
+    'retry': 600*60*60+10,
+    'ack_failures': True,
+    'max_attempts':5,
+    'queue_limit': 1000,
+    'bulk': 10,
+    'compress': False,
+    'label': 'Django Q',
+    'mongo': {
+        'host': 'mongodb://ec2-34-209-32-107.us-west-2.compute.amazonaws.com',
+        'port': 27017,
+        'username': config.get("MONGO_USER"),
+        'password': config.get("MONGO_PASSWORD"),
+    },
+    'mongo_db': 'django_q_db'
+}

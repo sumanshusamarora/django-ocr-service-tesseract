@@ -7,9 +7,12 @@ import time
 from django.conf import settings  # Being used by a test. Do not remove settings import
 from django.core.files import File
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django_expiring_token.models import ExpiringToken
 import pytest
 from s3urls import parse_url
+import signal
+import subprocess
 
 from ocr import (
     delete_objects_from_cloud_storage,
@@ -70,6 +73,7 @@ class TestPostOCR:
 
         :return:
         """
+        self.process = subprocess.Popen(["python", "manage.py", "qcluster"], shell=True, preexec_fn=os.setsid)
         (
             self.django_client,
             self.user,
@@ -84,8 +88,9 @@ class TestPostOCR:
         :return:
         """
         self.upload_delete.drop_test_file_from_cloud_storage()
+        os.killpg(self.process.pid, signal.SIGTERM)
 
-    def test_post_ocr_unauthenticated(self):
+    def test_post_ocr_unauthenticated(self, start_django_q_connection):
         """
 
         :return:
@@ -114,9 +119,7 @@ class TestPostOCR:
         )
 
         ocrinput_objs = OCRInput.objects.all().first()
-        time.sleep(5)
         ocroutput_objs = OCROutput.objects.filter(guid=ocrinput_objs)
-
         # Delete object from cloud so we do not overload our cloud bucket
         delete_objects_from_cloud_storage(
             keys=[parse_url(obj.image_path)["key"] for obj in ocroutput_objs]
@@ -146,7 +149,6 @@ class TestPostOCR:
         upload_file = SimpleUploadedFile(
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
-
         response = self.django_client.post(
             "/api/ocr/",
             data={"file": upload_file},
@@ -232,6 +234,13 @@ class TestGetOCR:
         ) = create_rest_user_login_generate_token()
         self.upload_delete = UploadDeleteTestFile()
         self.uploaded_filepath = self.upload_delete.upload_test_file_to_cloud_storage()
+
+    def teardown_method(self):
+        """
+
+        :return:
+        """
+        self.upload_delete.drop_test_file_from_cloud_storage()
 
     def test_get_ocr(self):
         """

@@ -1,10 +1,11 @@
-import pytest
-from django.db import connections
-from django.core.management import call_command
 
+from django.conf import settings
+from django.core.management import call_command
+from django.db import connections
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from django.conf import settings
+import pytest
+
 from common_utils import get_schema_name
 
 
@@ -59,3 +60,5 @@ def django_db_setup(django_db_blocker, django_db_createdb):
         run_sql("DROP DATABASE %s" % test_db_name, database=orig_db_name)
     except:
         pass
+
+

@@ -1,7 +1,7 @@
 """
 Common OCR utils
 """
-from datetime import datetime, timezone
+from datetime import datetime
 import os
 import logging
 
@@ -16,7 +16,6 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
-from .apps import scheduler
 from . import (
     generate_cloud_storage_key,
     is_cloud_storage,
@@ -160,17 +159,15 @@ def pdf_to_image(
                 cloud_storage_objects_kw_args.append(kw_args)
 
                 logging.info("Starting image upload")
+
+                from django_q.tasks import async_task
+
                 if use_async_to_upload:
                     logging.info("Uploading to cloud through background job")
-                    scheduler.add_job(
-                        func=upload_to_cloud_storage,
-                        trigger="date",
-                        run_date=datetime.now(timezone.utc),
-                        name=f"{kw_args['prefix']}-{kw_args['key']}",
-                        kwargs=kw_args,
-                        misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
-                        jobstore="default",
-                    )
+                    async_task(upload_to_cloud_storage,
+                               task_name=f"{kw_args['prefix']}-{kw_args['key']}",
+                               **kw_args)
+
                     cloud_storage_path = generate_cloud_storage_key(
                         path=kw_args["path"],
                         key=kw_args["key"],
@@ -281,7 +278,6 @@ def build_tesseract_ocr_config(
 
     return ocr_config
 
-
 def ocr_image(
     imagepath: str,
     preprocess: bool = True,
@@ -317,18 +313,20 @@ def ocr_image(
             lang=ocr_language,
             output_type="data.frame",
         )
+        logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
-
         if drop_image and os.path.isfile(imagepath):
             os.remove(imagepath)
             logger.info(f"Local file {imagepath} deleted")
 
         if inputocr_instance is not None:
+            logger.info(f"Saving OCR output to DB for {imagepath}")
             kwargs["ocr_output_model"].objects.create(
                 guid=inputocr_instance,
                 image_path=kwargs["cloud_imagepath"],
                 text=ocr_text,
             )
+            logger.info(f"OCR output saved to DB for {imagepath}")
 
     else:
         raise NotImplementedError(

@@ -1,7 +1,6 @@
 """
 Define models to enable easy integration
 """
-from datetime import datetime, timezone
 import logging
 import uuid
 
@@ -12,7 +11,6 @@ from django.db import models
 from s3urls import parse_url
 from urllib.parse import unquote_plus, unquote
 
-from .apps import scheduler
 from . import (
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
@@ -131,9 +129,6 @@ class OCRInput(models.Model):
                 cloud_storage_object_paths = [filepath]
                 self.input_is_image = True
 
-            self.result_response = {"guid": self.guid}
-            self.page_count = len(image_filepaths)
-
             if image_filepaths:
                 for index, image in enumerate(image_filepaths):
                     kw_args = {
@@ -145,15 +140,10 @@ class OCRInput(models.Model):
                     }
 
                     if settings.USE_BACKGROUND_TASK_FOR_SPEED:
-                        scheduler.add_job(
-                            func=ocr_image,
-                            trigger="date",
-                            run_date=datetime.now(timezone.utc),
-                            name=f"{self.guid}-{image}",
-                            kwargs=kw_args,
-                            misfire_grace_time=settings.APSCHEDULER_RUN_NOW_TIMEOUT,
-                            jobstore="default",
-                        )
+                        from django_q.tasks import async_task
+                        async_task(ocr_image,
+                                   task_name=f"{self.guid}-{image}",
+                                   **kw_args)
                     else:
                         ocr_image(**kw_args)
 
@@ -170,6 +160,9 @@ class OCRInput(models.Model):
                         logger.warning(
                             "Error dropping input file. Does the application have access to location?"
                         )
+
+            self.result_response = {"guid": self.guid}
+            self.page_count = len(image_filepaths)
 
         except Exception as exception:
             purge_directory(settings.LOCAL_FILES_SAVE_DIR)
