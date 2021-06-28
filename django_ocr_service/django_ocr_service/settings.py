@@ -52,8 +52,6 @@ os.environ["DJANGO_SUPERUSER_PASSWORD"] = config.get("DJANGO_SUPERUSER_PASSWORD"
 IMAGE_SIZE = config["IMAGE_SIZE"]
 BINARY_THRESHOLD = config["BINARY_THRESHOLD"]
 LOCAL_FILES_SAVE_DIR = config.get("LOCAL_FILES_SAVE_DIR")
-if not LOCAL_FILES_SAVE_DIR:
-    LOCAL_FILES_SAVE_DIR = "/tmp/ocr_inputs"
 
 # OCR
 OCR_OEM = config.get("OCR_OEM")
@@ -63,6 +61,7 @@ OCR_LANGUAGE = config.get("OCR_LANGUAGE")
 SAVE_IMAGES_TO_CLOUD = config.get("SAVE_IMAGES_TO_CLOUD")
 DROP_INPUT_FILE_POST_PROCESSING = config.get("DROP_INPUT_FILE_POST_PROCESSING")
 USE_BACKGROUND_TASK_FOR_SPEED = config.get("USE_BACKGROUND_TASK_FOR_SPEED")
+DELETE_OLD_IMAGES_DAYS = config.get("DELETE_OLD_IMAGES_DAYS")
 
 # REST
 TOKEN_VALIDITY_IN_HOURS = config["TOKEN_VALIDITY_IN_HOURS"]
@@ -193,10 +192,11 @@ Q_CLUSTER = {
     'compress': False,
     'label': 'Django Q',
     'mongo': {
-        'host': 'mongodb://ec2-34-209-32-107.us-west-2.compute.amazonaws.com',
-        'port': 27017,
+        'host': config.get("MONGO_HOST"),
+        'port': config.get("MONGO_PORT"),
         'username': config.get("MONGO_USER"),
         'password': config.get("MONGO_PASSWORD"),
+        'connect': False,
     },
     'mongo_db': 'django_q_db'
 }

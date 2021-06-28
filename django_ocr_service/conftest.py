@@ -29,7 +29,7 @@ def run_sql(sql, database):
     conn.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.yield_fixture(scope="session")
 def django_db_setup(django_db_blocker, django_db_createdb):
     """
 
@@ -38,7 +38,7 @@ def django_db_setup(django_db_blocker, django_db_createdb):
     :return:
     """
     orig_db_name = "postgres"  # settings.DATABASES["default"]["NAME"]
-    if settings.DATABASES["default"]["TEST"]["NAME"]:
+    if settings.DATABASES["default"].get("TEST") and settings.DATABASES["default"].get("TEST").get("NAME"):
         test_db_name = settings.DATABASES["default"]["TEST"]["NAME"]
     else:
         test_db_name = "test_" + settings.DATABASES["default"]["NAME"]
@@ -60,5 +60,3 @@ def django_db_setup(django_db_blocker, django_db_createdb):
         run_sql("DROP DATABASE %s" % test_db_name, database=orig_db_name)
     except:
         pass
-
-

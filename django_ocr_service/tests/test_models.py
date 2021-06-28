@@ -2,23 +2,17 @@
 Test OCR model
 """
 import os.path
-import time
 import uuid
 
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import pytest
-from s3urls import parse_url
 
-from ocr import (
-    delete_objects_from_cloud_storage,
-)
 from ocr.models import OCRInput, OCROutput
 from .help_testutils import (
     TESTFILE_PDF_PATH,
     TESTFILE_IMAGE_PATH,
-    QCluster,
 )
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -27,7 +21,7 @@ pytestmark = pytest.mark.django_db(transaction=True)
 class TestOCRInputOutputModel:
     """ """
 
-    def setup_method(self):
+    def setup_method(self, settings):
         """
 
         :return:
@@ -50,21 +44,15 @@ class TestOCRInputOutputModel:
 
         :return:
         """
-
         ocr_input_object = OCRInput(
             file=self.upload_file,
             guid=self.guid,
             ocr_config="--oem 4",
         )
         ocr_input_object.save()
-
         input_obj = OCRInput.objects.get(guid=self.guid)
-        time.sleep(5)
-        output_objs = OCROutput.objects.filter(guid=input_obj)
-        delete_objects_from_cloud_storage(
-            keys=[parse_url(obj.image_path)["key"] for obj in output_objs]
-        )
-        assert ocr_input_object.guid == self.guid and len(output_objs) > 0
+        assert input_obj.guid == self.guid
+
 
     def test_create_model_object_upload_image(self):
         """
@@ -90,17 +78,8 @@ class TestOCRInputOutputModel:
         ocr_input_object.save()
 
         input_obj = OCRInput.objects.get(guid=self.guid)
-        time.sleep(5)
-        output_objs = OCROutput.objects.filter(guid=input_obj)
-        delete_objects_from_cloud_storage(
-            keys=[parse_url(obj.image_path)["key"] for obj in output_objs]
-        )
-        assert (
-            ocr_input_object.guid == self.guid
-            and len(output_objs) > 0
-            and isinstance(output_objs[0].text, str)
-            and isinstance(output_objs[0].image_path, str)
-        )
+
+        assert input_obj.guid == self.guid
 
     def test_clean_method_raise_validation_error(self):
         """

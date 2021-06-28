@@ -18,5 +18,4 @@ from .ocr_utils import (
     pdf_to_image,
     ocr_image,
     download_locally_if_cloud_storage_path,
-    purge_directory,
 )

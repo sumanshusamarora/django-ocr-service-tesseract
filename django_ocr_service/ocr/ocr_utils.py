@@ -4,6 +4,7 @@ Common OCR utils
 from datetime import datetime
 import os
 import logging
+import time
 
 import cv2
 from django.conf import settings
@@ -57,20 +58,27 @@ def is_image(filepath: str):
     logger.info(f"{filepath} is a NOT a image file.")
     return False
 
-
-def purge_directory(dirpath: str):
+def clean_local_storage(dirpath: str, days: int = 2):
     """
-    Removes all filed in a directory
-    :param dirpath:
+    Method to clean local storage
     :return:
     """
-    for filename in os.listdir(dirpath):
-        file_path = os.path.join(dirpath, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-        except Exception as e:
-            print("Failed to delete %s. Reason: %s" % (file_path, e))
+    if not os.path.isdir(dirpath):
+        raise NotADirectoryError
+
+    os_walker = os.walk(dirpath)
+    now = time.time()
+
+    deleted = 0
+    for dir, subdirs, file_list in os_walker:
+        for file in file_list:
+            if file:
+                filepath = os.path.join(dir, file)
+                if os.stat(filepath).st_mtime < now - (days * 24 * 60 * 60):
+                    os.remove(filepath)
+                    deleted+=1
+
+    logger.info(f"Removed {deleted} files from {dirpath}")
 
 
 def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
@@ -283,7 +291,6 @@ def ocr_image(
     preprocess: bool = True,
     ocr_config: str=None,
     ocr_engine: str="tesseract",
-    drop_image: bool = True,
     inputocr_instance=None,
     **kwargs,
 ):
@@ -315,9 +322,6 @@ def ocr_image(
         )
         logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
-        if drop_image and os.path.isfile(imagepath):
-            os.remove(imagepath)
-            logger.info(f"Local file {imagepath} deleted")
 
         if inputocr_instance is not None:
             logger.info(f"Saving OCR output to DB for {imagepath}")
