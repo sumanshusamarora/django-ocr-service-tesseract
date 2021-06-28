@@ -76,7 +76,6 @@ class TestOCRInputOutputModel:
             ocr_config="--oem 4",
         )
         ocr_input_object.save()
-
         input_obj = OCRInput.objects.get(guid=self.guid)
 
         assert input_obj.guid == self.guid
