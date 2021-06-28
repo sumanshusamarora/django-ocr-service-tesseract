@@ -4,6 +4,7 @@ Common OCR utils
 from datetime import datetime
 import os
 import logging
+import time
 
 import cv2
 from django.conf import settings
@@ -56,6 +57,28 @@ def is_image(filepath: str):
 
     logger.info(f"{filepath} is a NOT a image file.")
     return False
+
+def clean_local_storage(dirpath: str, days: int = 2):
+    """
+    Method to clean local storage
+    :return:
+    """
+    if not os.path.isdir(dirpath):
+        raise NotADirectoryError
+
+    os_walker = os.walk(dirpath)
+    now = time.time()
+
+    deleted = 0
+    for dir, subdirs, file_list in os_walker:
+        for file in file_list:
+            if file:
+                filepath = os.path.join(dir, file)
+                if os.stat(filepath).st_mtime < now - (days * 24 * 60 * 60):
+                    os.remove(filepath)
+                    deleted+=1
+
+    logger.info(f"Removed {deleted} files from {dirpath}")
 
 
 def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
