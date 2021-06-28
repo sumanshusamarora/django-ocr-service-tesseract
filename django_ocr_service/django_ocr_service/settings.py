@@ -183,9 +183,10 @@ Q_CLUSTER = {
     'name': 'django_ocr_service',
     'workers': 10,
     'recycle': 1000,
-    'timeout': 600*60*60,
-    'retry': 600*60*60+10,
+    'timeout': 600,
+    'retry': 600+10,
     'max_attempts':1,
+    'attempt_count': 1,
     'queue_limit': 1000,
     'save_limit': 0,
     'bulk': 10,
@@ -198,5 +199,7 @@ Q_CLUSTER = {
         'password': config.get("MONGO_PASSWORD"),
         'connect': False,
     },
-    'mongo_db': 'django_q_db'
+    'mongo_db': 'django_q_db',
+    'ack_failures': True,
 }
+# 6379

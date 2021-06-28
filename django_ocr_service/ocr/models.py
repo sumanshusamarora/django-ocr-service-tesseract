@@ -131,8 +131,12 @@ class OCRInput(models.Model):
         if image_filepaths:
             for index, image in enumerate(image_filepaths):
                 kw_args = {
-                    "cloud_imagepath": cloud_storage_object_paths[index],
-                    "ocr_output_model": OCROutput,
+                    "imagepath": image,
+                    "preprocess": True,
+                    "ocr_config": None,
+                    "ocr_engine": "tesseract",
+                    "inputocr_guid": None,
+                    "cloud_imagepath": cloud_storage_object_paths[index]
                 }
 
                 use_async_to_ocr = settings.USE_BACKGROUND_TASK_FOR_SPEED
@@ -144,19 +148,12 @@ class OCRInput(models.Model):
                         logger.info("Scheduling background task to OCR image!!!")
                         schedule(
                             func='ocr.ocr_utils.ocr_image',
-                            name=f"{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
+                            name=f"OCR-{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
                             schedule_type=Schedule.ONCE,
-                            imagepath=image,
-                            preprocess=True,
-                            inputocr_instance=self,
-                            cloud_imagepath=cloud_storage_object_paths[index],
-                            ocr_output_model=OCROutput,
-                            kwargs=kw_args,
-                            next_run=arrow.utcnow().shift(seconds=2).datetime,
+                            **kw_args,
+                            next_run=arrow.utcnow().shift(seconds=3).datetime,
                         )
                         logger.info("Background task to OCR image scheduled successfully!!!")
-                        import pdb;
-                        pdb.set_trace()
                     except Exception as exception:
                         logger.error("Error adding background task to upload image to cloud")
                         logger.error(exception)
@@ -166,12 +163,7 @@ class OCRInput(models.Model):
                 # sync fashion if job scheduling fails
                 if not use_async_to_ocr:
                     ocr_image(
-                        imagepath=image,
-                        preprocess=True,
-                        inputocr_instance=self,
-                        cloud_imagepath=cloud_storage_object_paths[index],
-                        ocr_output_model=OCROutput,
-                        kwargs=kw_args,
+                        **kw_args
                     )
 
             if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:

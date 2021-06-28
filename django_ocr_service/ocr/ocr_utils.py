@@ -19,6 +19,7 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
+import ocr
 from . import (
     generate_cloud_storage_key,
     is_cloud_storage,
@@ -177,7 +178,7 @@ def pdf_to_image(
                     try:
                         schedule(
                             func='ocr.storage_utils.upload_to_cloud_storage',
-                            name=f"{kw_args['key']}-{uuid.uuid4().hex}"[:99],
+                            name=f"Upload-{kw_args['key']}-{uuid.uuid4().hex}"[:99],
                             schedule_type=Schedule.ONCE,
                             path=image,
                             bucket=settings.AWS_STORAGE_BUCKET_NAME,
@@ -307,15 +308,19 @@ def build_tesseract_ocr_config(
 def ocr_image(
     imagepath: str,
     preprocess: bool = True,
-    ocr_config: str=None,
-    ocr_engine: str="tesseract",
-    inputocr_instance=None,
-    **kwargs,
+    ocr_config: str = None,
+    ocr_engine: str = "tesseract",
+    inputocr_guid: str = None,
+    cloud_imagepath: str = None,
 ):
     """
-
+    
     :param imagepath:
     :param preprocess:
+    :param ocr_config:
+    :param ocr_engine:
+    :param inputocr_guid:
+    :param cloud_imagepath:
     :return:
     """
     ocr_text = None
@@ -341,13 +346,14 @@ def ocr_image(
         logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 
-        if inputocr_instance is not None:
+        if inputocr_guid:
+            inputocr_instance = ocr.models.OCRInput(guid=inputocr_guid)
             logger.info(f"Saving OCR output to DB for {imagepath}")
-            kwargs["ocr_output_model"].objects.create(
+            _ = ocr.models.OCROutput.objects.create(
                 guid=inputocr_instance,
-                image_path=kwargs["cloud_imagepath"],
+                image_path=cloud_imagepath,
                 text=ocr_text,
-            )
+                )
             logger.info(f"OCR output saved to DB for {imagepath}")
 
     else:
