@@ -196,6 +196,7 @@ Q_CLUSTER = {
         'port': config.get("MONGO_PORT"),
         'username': config.get("MONGO_USER"),
         'password': config.get("MONGO_PASSWORD"),
+        'connect': False,
     },
     'mongo_db': 'django_q_db'
 }
