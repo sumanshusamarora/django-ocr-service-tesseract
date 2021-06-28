@@ -19,6 +19,8 @@ import arrow
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django_q.models import Schedule
+from django_q.tasks import schedule
 
 from ocr.api import (
     GenerateOCR,
@@ -38,10 +40,7 @@ urlpatterns = [
     path("api/sns/ocr/", GenerateOCR_SNS.as_view()),
 ]
 
-
-
-from django_q.models import Schedule
-from django_q.tasks import schedule
+# Adding scheduled task to clean up storage
 
 schedule_task_name = "CleanUpStorage"
 
