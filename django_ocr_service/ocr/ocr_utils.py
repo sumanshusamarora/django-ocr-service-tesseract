@@ -5,7 +5,9 @@ from datetime import datetime
 import os
 import logging
 import time
+import uuid
 
+import arrow
 import cv2
 from django.conf import settings
 import multiprocessing
@@ -168,21 +170,37 @@ def pdf_to_image(
 
                 logging.info("Starting image upload")
 
-                from django_q.tasks import async_task
-
                 if use_async_to_upload:
+                    from django_q.models import Schedule
+                    from django_q.tasks import schedule
                     logging.info("Uploading to cloud through background job")
-                    async_task(upload_to_cloud_storage,
-                               task_name=f"{kw_args['prefix']}-{kw_args['key']}",
-                               **kw_args)
+                    try:
+                        schedule(
+                            func='ocr.storage_utils.upload_to_cloud_storage',
+                            name=f"{kw_args['key']}-{uuid.uuid4().hex}"[:99],
+                            schedule_type=Schedule.ONCE,
+                            path=image,
+                            bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                            prefix=prefix,
+                            key=f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
+                            append_datetime=False,
+                            next_run=arrow.utcnow().shift(seconds=1).datetime,
+                        )
 
-                    cloud_storage_path = generate_cloud_storage_key(
-                        path=kw_args["path"],
-                        key=kw_args["key"],
-                        prefix=kw_args["prefix"],
-                        append_datetime=kw_args["append_datetime"],
-                    )
-                else:
+                        cloud_storage_path = generate_cloud_storage_key(
+                            path=kw_args["path"],
+                            key=kw_args["key"],
+                            prefix=kw_args["prefix"],
+                            append_datetime=kw_args["append_datetime"],
+                        )
+                    except Exception as exception:
+                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(exception)
+                        use_async_to_upload = False
+
+                # Else condition is not used on purpose since we want to move the job to happen in
+                # sync fashion if job scheduling fails
+                if not use_async_to_upload:
                     logging.info("Uploading to cloud in a blocking thread")
                     cloud_storage_path = upload_to_cloud_storage(**kw_args)
 
