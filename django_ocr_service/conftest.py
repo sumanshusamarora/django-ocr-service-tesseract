@@ -79,6 +79,3 @@ def pytest_sessionfinish(session, exitstatus):
 
     for object in response['Contents']:
         s3_client.delete_object(Bucket=bucket, Key=object['Key'])
-
-
-
