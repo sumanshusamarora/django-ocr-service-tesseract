@@ -5,6 +5,7 @@ import logging
 import uuid
 
 import arrow
+import checksum
 import s3urls
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -50,6 +51,7 @@ class OCRInput(models.Model):
     ocr_language = models.CharField(max_length=50, blank=True, null=True)
     page_count = models.PositiveIntegerField(default=0)
     result_response = models.TextField(max_length=None, blank=True, null=True)
+    checksum = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -105,12 +107,15 @@ class OCRInput(models.Model):
         else:
             logger.info(f"File {filepath} downloaded locally")
 
+        self.checksum = checksum.get_for_file(local_filepath)
+
         if is_pdf(local_filepath):
             image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
                 pdf_path=local_filepath,
                 save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
                 use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
             )
+
             # Below line allows getting the upload paths even if upload to cloud storage
             #  not finished due to threading workers still finishing their jobs
             cloud_storage_object_paths = [
@@ -243,6 +248,7 @@ class OCROutput(models.Model):
     guid = models.ForeignKey(OCRInput, on_delete=models.CASCADE)
     image_path = models.CharField(max_length=1000, blank=False, null=False)
     text = models.TextField(max_length=None, blank=True, null=False)
+    checksum = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
