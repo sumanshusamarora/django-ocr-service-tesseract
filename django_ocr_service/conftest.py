@@ -12,7 +12,6 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import pytest
 
 from common_utils import get_schema_name
-from ocr.storage_utils import delete_objects_from_cloud_storage
 
 
 def run_sql(sql, database):
@@ -78,10 +77,12 @@ def pytest_sessionstart(session):
 def pytest_sessionfinish(session, exitstatus):
     prefix = "test_data"
     s3_client = boto3.client("s3")
-    bucket = settings.CLOUD_STORAGE_BUCKET_NAME
-    response = s3_client.list_objects_v2(
-        Bucket=settings.CLOUD_STORAGE_BUCKET_NAME, Prefix=prefix
-    )
-
-    for object in response["Contents"]:
-        s3_client.delete_object(Bucket=bucket, Key=object["Key"])
+    try:
+        bucket = settings.CLOUD_STORAGE_BUCKET_NAME
+        response = s3_client.list_objects_v2(
+            Bucket=settings.CLOUD_STORAGE_BUCKET_NAME, Prefix=prefix
+        )
+        for object in response["Contents"]:
+            s3_client.delete_object(Bucket=bucket, Key=object["Key"])
+    except:
+        pass

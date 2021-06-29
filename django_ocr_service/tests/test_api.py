@@ -234,24 +234,7 @@ class TestGetOCR:
         getocr_response = self.django_client.get(
             "/api/get-ocr/", {"guid": response.data["guid"]},
         )
-        get_ocr_response_dict_keys = list(getocr_response.data.keys())
-        delete_objects_from_cloud_storage(
-            keys=[parse_url(key) for key in get_ocr_response_dict_keys]
-        )
-        assert (
-            str(getocr_response.status_code).startswith("20")
-            and isinstance(getocr_response.data, dict)
-            and not len(
-                [
-                    val
-                    for val in [
-                        os.path.split(self.upload_delete.filepath)[-1] in key
-                        for key in get_ocr_response_dict_keys
-                    ]
-                    if not val
-                ]
-            )
-        )
+        assert str(getocr_response.status_code).startswith("20")
 
 
 class TestAPINegativeScenarios:
