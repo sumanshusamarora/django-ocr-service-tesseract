@@ -14,7 +14,6 @@ import logging.config
 import os
 
 from pathlib import Path
-import urllib
 import yaml
 
 from . import config
