@@ -161,7 +161,10 @@ class GetOCR(APIView):
                 response_dict = {obj["image_path"]: obj["text"] for obj in output_objs}
                 stat = self._generate_api_response_status(input_obj, output_objs)
 
-                return Response(data=response_dict, status=stat)
+                if stat == status.HTTP_204_NO_CONTENT:
+                    return Response(status=stat)
+                else:
+                    return Response(data=response_dict, status=stat)
 
 
 class GenerateOCR_SNS(APIView):  # pragma: no cover
