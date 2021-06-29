@@ -4,6 +4,7 @@ Test OCR model
 import os.path
 import uuid
 
+import checksum
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -51,7 +52,7 @@ class TestOCRInputOutputModel:
         )
         ocr_input_object.save()
         input_obj = OCRInput.objects.get(guid=self.guid)
-        assert input_obj.guid == self.guid
+        assert input_obj.guid == self.guid and input_obj.checksum == checksum.get_for_file(TESTFILE_PDF_PATH)
 
 
     def test_create_model_object_upload_image(self):
@@ -78,7 +79,7 @@ class TestOCRInputOutputModel:
         ocr_input_object.save()
         input_obj = OCRInput.objects.get(guid=self.guid)
 
-        assert input_obj.guid == self.guid
+        assert input_obj.guid == self.guid and input_obj.checksum == checksum.get_for_file(TESTFILE_IMAGE_PATH)
 
     def test_clean_method_raise_validation_error(self):
         """
