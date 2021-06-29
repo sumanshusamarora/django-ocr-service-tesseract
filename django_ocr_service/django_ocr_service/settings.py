@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 from datetime import timedelta
 import logging.config
+import multiprocessing
 import os
 
 from pathlib import Path
@@ -174,7 +175,7 @@ ALLOWED_STORAGES = ["s3"]
 
 Q_CLUSTER = {
     "name": "django_ocr_service",
-    "workers": 10,
+    "workers": multiprocessing.cpu_count(),
     "recycle": 1000,
     "timeout": 600,
     "retry": 600 + 10,
