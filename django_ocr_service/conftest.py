@@ -1,4 +1,9 @@
+"""
+Conftest to enable testing
+"""
+import os
 
+import boto3
 from django.conf import settings
 from django.core.management import call_command
 from django.db import connections
@@ -7,6 +12,7 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import pytest
 
 from common_utils import get_schema_name
+from ocr.storage_utils import delete_objects_from_cloud_storage
 
 
 def run_sql(sql, database):
@@ -60,3 +66,19 @@ def django_db_setup(django_db_blocker, django_db_createdb):
         run_sql("DROP DATABASE %s" % test_db_name, database=orig_db_name)
     except:
         pass
+
+def pytest_sessionstart(session):
+    prefix = "test_data"
+    settings.MEDIA_ROOT = os.path.join(settings.BASE_DIR, prefix)
+
+def pytest_sessionfinish(session, exitstatus):
+    prefix = "test_data"
+    s3_client = boto3.client('s3')
+    bucket = settings.CLOUD_STORAGE_BUCKET_NAME
+    response = s3_client.list_objects_v2(Bucket=settings.CLOUD_STORAGE_BUCKET_NAME, Prefix=prefix)
+
+    for object in response['Contents']:
+        s3_client.delete_object(Bucket=bucket, Key=object['Key'])
+
+
+
