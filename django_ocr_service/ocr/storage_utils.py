@@ -35,10 +35,7 @@ def instantiate_custom_cloud_stroage(
 
 
 def generate_cloud_storage_key(
-    path: str,
-    key: str,
-    prefix: str = None,
-    append_datetime: bool = True,
+    path: str, key: str, prefix: str = None, append_datetime: bool = True,
 ):
     """
     Generates a key for object to be uploaded
@@ -100,8 +97,7 @@ def upload_to_cloud_storage(
 
 
 def generate_cloud_object_url(
-    key: str,
-    bucket: str = None,
+    key: str, bucket: str = None,
 ):
     """
 

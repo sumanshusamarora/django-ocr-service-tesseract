@@ -8,6 +8,7 @@ import time
 import uuid
 
 import arrow
+import checksum
 import cv2
 from django.conf import settings
 import multiprocessing
@@ -61,6 +62,7 @@ def is_image(filepath: str):
     logger.info(f"{filepath} is a NOT a image file.")
     return False
 
+
 def clean_local_storage(dirpath: str, days: int = 2):
     """
     Method to clean local storage
@@ -79,7 +81,7 @@ def clean_local_storage(dirpath: str, days: int = 2):
                 filepath = os.path.join(dir, file)
                 if os.stat(filepath).st_mtime < now - (days * 24 * 60 * 60):
                     os.remove(filepath)
-                    deleted+=1
+                    deleted += 1
 
     logger.info(f"Removed {deleted} files from {dirpath}")
 
@@ -174,10 +176,11 @@ def pdf_to_image(
                 if use_async_to_upload:
                     from django_q.models import Schedule
                     from django_q.tasks import schedule
+
                     logging.info("Uploading to cloud through background job")
                     try:
                         schedule(
-                            func='ocr.storage_utils.upload_to_cloud_storage',
+                            func="ocr.storage_utils.upload_to_cloud_storage",
                             name=f"Upload-{kw_args['key']}-{uuid.uuid4().hex}"[:99],
                             schedule_type=Schedule.ONCE,
                             path=image,
@@ -195,7 +198,9 @@ def pdf_to_image(
                             append_datetime=kw_args["append_datetime"],
                         )
                     except Exception as exception:
-                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(
+                            "Error adding background task to upload image to cloud"
+                        )
                         logger.error(exception)
                         use_async_to_upload = False
 
@@ -226,18 +231,22 @@ def generate_text_from_ocr_output(
     Reads OCR json output and generates ocr text from it
     """
     ocr_dataframe = ocr_dataframe[ocr_dataframe["height"] < ocr_dataframe["top"].max()]
-    ocr_dataframe.loc[:,"bottom"] = ocr_dataframe.loc[:, "top"] + ocr_dataframe.loc[:, "height"]
+    ocr_dataframe.loc[:, "bottom"] = (
+        ocr_dataframe.loc[:, "top"] + ocr_dataframe.loc[:, "height"]
+    )
     ignore_index = []
     line_indexes = []
     data_indexes = list(ocr_dataframe.index)
-    ocr_dataframe.loc[:,"text"] = ocr_dataframe.loc[:,"text"].copy().fillna("")
+    ocr_dataframe.loc[:, "text"] = ocr_dataframe.loc[:, "text"].copy().fillna("")
     for i in data_indexes:
         if (
             i not in ignore_index
             and ocr_dataframe["text"][i]
             and not ocr_dataframe["text"][i].strip() == ""
         ):
-            this_row_bottom = ocr_dataframe.loc[i, "top"] + ocr_dataframe.loc[i, "height"]
+            this_row_bottom = (
+                ocr_dataframe.loc[i, "top"] + ocr_dataframe.loc[i, "height"]
+            )
             line_index = list(
                 ocr_dataframe[
                     (~ocr_dataframe.index.isin(ignore_index))
@@ -305,6 +314,66 @@ def build_tesseract_ocr_config(
 
     return ocr_config
 
+
+def get_obj_if_already_present(checksum):
+    """
+
+    :param checksum:
+    :return:
+    """
+    objs = ocr.models.OCROutput.objects.filter(checksum=checksum)
+
+    if objs:
+        logger.info(
+            f"Existing results found in OCROutput model for file having checksum {checksum}"
+        )
+        return objs.latest("modified_at")
+
+    logger.info(
+        f"No results found in OCROutput model for file having checksum {checksum}"
+    )
+    return None
+
+
+def load_image(imagepath, preprocess: bool = True):
+    """
+
+    :param preprocess:
+    :return:
+    """
+    if preprocess:
+        logger.info("Preprocessing image")
+        image = preprocess_image_for_ocr(imagepath)
+    else:
+        logger.info("Preprocessing is set to False, reading image")
+        image = cv2.imread(imagepath)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    return image
+
+
+def ocr_using_tesseract_engine(image, ocr_config=None):
+    """
+
+    :param image:
+    :param ocr_config:
+    :return:
+    """
+    logger.info("Tesseract selected as OCR engine")
+    if not ocr_config:
+        ocr_config = build_tesseract_ocr_config()
+
+    ocr_language = settings.OCR_LANGUAGE
+    logger.info(f"OCR Config - {ocr_config}, OCR Language - {ocr_language}")
+
+    image_data = image_to_data(
+        image, config=(ocr_config), lang=ocr_language, output_type="data.frame",
+    )
+    ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
+
+    return ocr_text
+
+
 def ocr_image(
     imagepath: str,
     preprocess: bool = True,
@@ -325,40 +394,34 @@ def ocr_image(
     """
     ocr_text = None
 
-    if preprocess:
-        image = preprocess_image_for_ocr(imagepath)
+    image_checksum = checksum.get_for_file(imagepath)
+
+    output_obj = get_obj_if_already_present(image_checksum)
+
+    if output_obj:
+        cloud_imagepath = output_obj.image_path
+        ocr_text = output_obj.text
     else:
-        image = cv2.imread(imagepath)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = load_image(imagepath=imagepath, preprocess=preprocess)
 
-    if ocr_engine == "tesseract":
-        if not ocr_config:
-            ocr_config = build_tesseract_ocr_config()
+        if ocr_engine == "tesseract":
+            logger.info("Tesseract selected as OCR engine")
+            ocr_text = ocr_using_tesseract_engine(image=image, ocr_config=ocr_config)
+            logger.info(f"OCR results received for {imagepath}")
+        else:
+            raise NotImplementedError(
+                "No other OCR engine except tesseract is supported currently"
+            )
 
-        ocr_language = settings.OCR_LANGUAGE
-
-        image_data = image_to_data(
-            image,
-            config=(ocr_config),
-            lang=ocr_language,
-            output_type="data.frame",
+    if inputocr_guid and ocr_text:
+        inputocr_instance = ocr.models.OCRInput.objects.get(guid=inputocr_guid)
+        logger.info(f"Saving OCR output to DB for {imagepath}")
+        _ = ocr.models.OCROutput.objects.create(
+            guid=inputocr_instance,
+            image_path=cloud_imagepath,
+            text=ocr_text,
+            checksum=image_checksum,
         )
-        logger.info(f"OCR results received for {imagepath}")
-        ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
-
-        if inputocr_guid:
-            inputocr_instance = ocr.models.OCRInput.objects.get(guid=inputocr_guid)
-            logger.info(f"Saving OCR output to DB for {imagepath}")
-            _ = ocr.models.OCROutput.objects.create(
-                guid=inputocr_instance,
-                image_path=cloud_imagepath,
-                text=ocr_text,
-                )
-            logger.info(f"OCR output saved to DB for {imagepath}")
-
-    else:
-        raise NotImplementedError(
-            "No other OCR engine except tesseract is supported currently"
-        )
+        logger.info(f"OCR output saved to DB for {imagepath}")
 
     return ocr_text

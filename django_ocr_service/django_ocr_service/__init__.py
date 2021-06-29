@@ -129,7 +129,7 @@ if config.get("SAVE_IMAGES_TO_CLOUD") is None:
 if os.environ.get("MONGO_HOST"):
     config["MONGO_HOST"] = os.environ.get("MONGO_HOST")
 
-config["MONGO_HOST"] = "mongodb://"+config["MONGO_HOST"].replace("mongodb://", "")
+config["MONGO_HOST"] = "mongodb://" + config["MONGO_HOST"].replace("mongodb://", "")
 
 if os.environ.get("MONGO_PORT"):
     config["MONGO_PORT"] = int(os.environ.get("MONGO_PORT"))

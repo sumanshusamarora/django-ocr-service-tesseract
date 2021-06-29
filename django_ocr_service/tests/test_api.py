@@ -26,6 +26,7 @@ from .help_testutils import (
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
+
 class TestGetTokenAPI:
     """ """
 
@@ -64,6 +65,7 @@ class TestGetTokenAPI:
         )
         assert response.status_code == 401
 
+
 class TestPostOCR:
     """ """
 
@@ -72,7 +74,9 @@ class TestPostOCR:
 
         :return:
         """
-        self.process = subprocess.Popen(["python", "manage.py", "qcluster"], shell=True, preexec_fn=os.setsid)
+        self.process = subprocess.Popen(
+            ["python", "manage.py", "qcluster"], shell=True, preexec_fn=os.setsid
+        )
         (
             self.django_client,
             self.user,
@@ -142,10 +146,7 @@ class TestPostOCR:
         upload_file = SimpleUploadedFile(
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
-        response = self.django_client.post(
-            "/api/ocr/",
-            data={"file": upload_file},
-        )
+        response = self.django_client.post("/api/ocr/", data={"file": upload_file},)
 
         ocrinput_objs = OCRInput.objects.all().first()
         time.sleep(5)
@@ -178,19 +179,16 @@ class TestPostOCR:
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
 
-        response = self.django_client.post(
-            "/api/ocr/",
-            data={"file": upload_file},
-        )
+        response = self.django_client.post("/api/ocr/", data={"file": upload_file},)
 
         ocrinput_objs = OCRInput.objects.all().first()
-
 
         assert (
             isinstance(ocrinput_objs.guid, str)
             and response.status_code in [200, 202]
             and response.data["guid"] == ocrinput_objs.guid
         )
+
 
 class TestGetOCR:
     """ """
@@ -234,8 +232,7 @@ class TestGetOCR:
         time.sleep(5)
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
         getocr_response = self.django_client.get(
-            "/api/get-ocr/",
-            {"guid": response.data["guid"]},
+            "/api/get-ocr/", {"guid": response.data["guid"]},
         )
         get_ocr_response_dict_keys = list(getocr_response.data.keys())
         delete_objects_from_cloud_storage(
@@ -244,13 +241,20 @@ class TestGetOCR:
         assert (
             str(getocr_response.status_code).startswith("20")
             and isinstance(getocr_response.data, dict)
-            and not len([val for val in [
-                os.path.split(self.upload_delete.filepath)[-1] in key
-                for key in get_ocr_response_dict_keys] if not val])
+            and not len(
+                [
+                    val
+                    for val in [
+                        os.path.split(self.upload_delete.filepath)[-1] in key
+                        for key in get_ocr_response_dict_keys
+                    ]
+                    if not val
+                ]
+            )
         )
 
-class TestAPINegativeScenarios:
 
+class TestAPINegativeScenarios:
     def setup_method(self):
         """
 
@@ -261,7 +265,6 @@ class TestAPINegativeScenarios:
             self.user,
             self.token_true,
         ) = create_rest_user_login_generate_token()
-
 
     def test_post_ocr_without_data(self):
         """
@@ -276,7 +279,10 @@ class TestAPINegativeScenarios:
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
         response = self.django_client.post("/api/ocr/")
 
-        assert response.status_code == 400 and response.json()["Error"] == "File input required"
+        assert (
+            response.status_code == 400
+            and response.json()["Error"] == "File input required"
+        )
 
     def test_post_ocr_wrong_data(self):
         """
@@ -289,8 +295,8 @@ class TestAPINegativeScenarios:
         )
         token = token_response.data["token"]
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
-        response = self.django_client.post("/api/ocr/", data={"file":"string"})
-        assert response.status_code == 400 and isinstance(response.json()['file'], list)
+        response = self.django_client.post("/api/ocr/", data={"file": "string"})
+        assert response.status_code == 400 and isinstance(response.json()["file"], list)
 
     def test_get_ocr_no_guid(self):
         """
@@ -304,7 +310,9 @@ class TestAPINegativeScenarios:
         token = token_response.data["token"]
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
         response = self.django_client.get("/api/get-ocr/")
-        assert response.status_code == 400 and response.json() == {"guid": "Invalid request, guid expected"}
+        assert response.status_code == 400 and response.json() == {
+            "guid": "Invalid request, guid expected"
+        }
 
     def test_get_ocr_wrong_guid_value(self):
         """
@@ -318,4 +326,6 @@ class TestAPINegativeScenarios:
         token = token_response.data["token"]
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
         response = self.django_client.get("/api/get-ocr/", {"guid": "string"})
-        assert response.status_code == 400 and response.json()["guid"].startswith("Invalid guid")
+        assert response.status_code == 400 and response.json()["guid"].startswith(
+            "Invalid guid"
+        )

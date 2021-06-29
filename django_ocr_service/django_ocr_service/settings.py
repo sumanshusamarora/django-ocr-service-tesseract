@@ -14,7 +14,6 @@ import logging.config
 import os
 
 from pathlib import Path
-import urllib
 import yaml
 
 from . import config
@@ -137,15 +136,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
 ]
 
 
@@ -180,26 +173,26 @@ STATICFILES_STORAGE = "django_ocr_service.custom_storage.CloudStaticStorage"
 ALLOWED_STORAGES = ["s3"]
 
 Q_CLUSTER = {
-    'name': 'django_ocr_service',
-    'workers': 10,
-    'recycle': 1000,
-    'timeout': 600,
-    'retry': 600+10,
-    'max_attempts':1,
-    'attempt_count': 1,
-    'queue_limit': 1000,
-    'save_limit': 0,
-    'bulk': 10,
-    'compress': False,
-    'label': 'Django Q',
-    'mongo': {
-        'host': config.get("MONGO_HOST"),
-        'port': config.get("MONGO_PORT"),
-        'username': config.get("MONGO_USER"),
-        'password': config.get("MONGO_PASSWORD"),
-        'connect': False,
+    "name": "django_ocr_service",
+    "workers": 10,
+    "recycle": 1000,
+    "timeout": 600,
+    "retry": 600 + 10,
+    "max_attempts": 1,
+    "attempt_count": 1,
+    "queue_limit": 1000,
+    "save_limit": 0,
+    "bulk": 10,
+    "compress": False,
+    "label": "Django Q",
+    "mongo": {
+        "host": config.get("MONGO_HOST"),
+        "port": config.get("MONGO_PORT"),
+        "username": config.get("MONGO_USER"),
+        "password": config.get("MONGO_PASSWORD"),
+        "connect": False,
     },
-    'mongo_db': 'django_q_db',
-    'ack_failures': True,
+    "mongo_db": "django_q_db",
+    "ack_failures": True,
 }
 # 6379

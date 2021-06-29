@@ -55,17 +55,10 @@ try:
         schedule_type=Schedule.DAILY,
         dirpath=settings.LOCAL_FILES_SAVE_DIR,
         days=settings.DELETE_OLD_IMAGES_DAYS,
-        q_options={
-            "ack_failure": True,
-            "catch_up": False,
-            "max_attempts": 1,
-        },
+        q_options={"ack_failure": True, "catch_up": False, "max_attempts": 1,},
         next_run=arrow.utcnow().shift(days=1).replace(hour=10, minute=0).datetime,
     )
 
     logger.info("Storage cleaning task schedule created!!!")
 except Exception as exception:
     logger.error(f"{schedule_task_name} task scheduling failed - {exception}")
-
-
-

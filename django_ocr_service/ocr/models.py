@@ -5,6 +5,7 @@ import logging
 import uuid
 
 import arrow
+import checksum
 import s3urls
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -50,6 +51,7 @@ class OCRInput(models.Model):
     ocr_language = models.CharField(max_length=50, blank=True, null=True)
     page_count = models.PositiveIntegerField(default=0)
     result_response = models.TextField(max_length=None, blank=True, null=True)
+    checksum = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -105,12 +107,15 @@ class OCRInput(models.Model):
         else:
             logger.info(f"File {filepath} downloaded locally")
 
+        self.checksum = checksum.get_for_file(local_filepath)
+
         if is_pdf(local_filepath):
             image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
                 pdf_path=local_filepath,
                 save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
                 use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
             )
+
             # Below line allows getting the upload paths even if upload to cloud storage
             #  not finished due to threading workers still finishing their jobs
             cloud_storage_object_paths = [
@@ -143,7 +148,7 @@ class OCRInput(models.Model):
                     "ocr_config": None,
                     "ocr_engine": "tesseract",
                     "inputocr_guid": self.guid,
-                    "cloud_imagepath": cloud_storage_object_paths[index]
+                    "cloud_imagepath": cloud_storage_object_paths[index],
                 }
 
                 use_async_to_ocr = settings.USE_BACKGROUND_TASK_FOR_SPEED
@@ -152,26 +157,29 @@ class OCRInput(models.Model):
                     try:
                         from django_q.models import Schedule
                         from django_q.tasks import schedule
+
                         logger.info("Scheduling background task to OCR image!!!")
                         schedule(
-                            func='ocr.ocr_utils.ocr_image',
+                            func="ocr.ocr_utils.ocr_image",
                             name=f"OCR-{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
                             schedule_type=Schedule.ONCE,
                             **kw_args,
                             next_run=arrow.utcnow().shift(seconds=3).datetime,
                         )
-                        logger.info("Background task to OCR image scheduled successfully!!!")
+                        logger.info(
+                            "Background task to OCR image scheduled successfully!!!"
+                        )
                     except Exception as exception:
-                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(
+                            "Error adding background task to upload image to cloud"
+                        )
                         logger.error(exception)
                         use_async_to_ocr = False
 
                 # Else condition is not used on purpose since we want to move the job to happen in
                 # sync fashion if job scheduling fails
                 if not use_async_to_ocr:
-                    ocr_image(
-                        **kw_args
-                    )
+                    ocr_image(**kw_args)
 
             if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
                 # Only delete input file if its a pdf since we convert it to images and re-upload it
@@ -219,7 +227,6 @@ class OCRInput(models.Model):
         super(OCRInput, self).save()
         logger.info("All set to start OCR. Model saved again!")
 
-
         logger.info("Starting OCR process now")
         self._do_ocr(image_filepaths, cloud_storage_object_paths)
         logger.info("OCR process finished, saving model object again")
@@ -243,6 +250,7 @@ class OCROutput(models.Model):
     guid = models.ForeignKey(OCRInput, on_delete=models.CASCADE)
     image_path = models.CharField(max_length=1000, blank=False, null=False)
     text = models.TextField(max_length=None, blank=True, null=False)
+    checksum = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
