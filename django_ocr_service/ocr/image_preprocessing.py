@@ -8,9 +8,12 @@ import cv2
 from django.conf import settings
 import numpy as np
 from PIL import Image
+from PIL import ImageFile
 
 logger = logging.getLogger(__name__)
 
+# Below line is to ensure PIL does not throw error if it feels image is truncated
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def get_size_of_scaled_image(im):
     """
