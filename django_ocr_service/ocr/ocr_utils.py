@@ -226,18 +226,18 @@ def generate_text_from_ocr_output(
     Reads OCR json output and generates ocr text from it
     """
     ocr_dataframe = ocr_dataframe[ocr_dataframe["height"] < ocr_dataframe["top"].max()]
-    ocr_dataframe["bottom"] = ocr_dataframe["top"] + ocr_dataframe["height"]
+    ocr_dataframe.loc[:,"bottom"] = ocr_dataframe.loc[:, "top"] + ocr_dataframe.loc[:, "height"]
     ignore_index = []
     line_indexes = []
     data_indexes = list(ocr_dataframe.index)
-    ocr_dataframe["text"].fillna("", inplace=True)
+    ocr_dataframe.loc[:,"text"] = ocr_dataframe.loc[:,"text"].copy().fillna("")
     for i in data_indexes:
         if (
             i not in ignore_index
             and ocr_dataframe["text"][i]
             and not ocr_dataframe["text"][i].strip() == ""
         ):
-            this_row_bottom = ocr_dataframe["top"][i] + ocr_dataframe["height"][i]
+            this_row_bottom = ocr_dataframe.loc[i, "top"] + ocr_dataframe.loc[i, "height"]
             line_index = list(
                 ocr_dataframe[
                     (~ocr_dataframe.index.isin(ignore_index))
@@ -347,7 +347,7 @@ def ocr_image(
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 
         if inputocr_guid:
-            inputocr_instance = ocr.models.OCRInput(guid=inputocr_guid)
+            inputocr_instance = ocr.models.OCRInput.objects.get(guid=inputocr_guid)
             logger.info(f"Saving OCR output to DB for {imagepath}")
             _ = ocr.models.OCROutput.objects.create(
                 guid=inputocr_instance,

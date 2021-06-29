@@ -79,7 +79,7 @@ class OCRInput(models.Model):
                 f'Dropped input file {parsed_uri_dict["key"]} in bucket {parsed_uri_dict["bucket"]}'
             )
 
-    def _do_ocr(self):
+    def _prepare_for_ocr(self):
         """
         Perform OCR on input file
         :return:
@@ -128,6 +128,13 @@ class OCRInput(models.Model):
             cloud_storage_object_paths = [filepath]
             self.input_is_image = True
 
+        return image_filepaths, cloud_storage_object_paths
+
+    def _do_ocr(self, image_filepaths: list, cloud_storage_object_paths: list):
+        """
+
+        :return:
+        """
         if image_filepaths:
             for index, image in enumerate(image_filepaths):
                 kw_args = {
@@ -135,7 +142,7 @@ class OCRInput(models.Model):
                     "preprocess": True,
                     "ocr_config": None,
                     "ocr_engine": "tesseract",
-                    "inputocr_guid": None,
+                    "inputocr_guid": self.guid,
                     "cloud_imagepath": cloud_storage_object_paths[index]
                 }
 
@@ -206,8 +213,15 @@ class OCRInput(models.Model):
         self.clean()
 
         super(OCRInput, self).save()
+
+        logger.info("Starting pre-work for OCR...")
+        image_filepaths, cloud_storage_object_paths = self._prepare_for_ocr()
+        super(OCRInput, self).save()
+        logger.info("All set to start OCR. Model saved again!")
+
+
         logger.info("Starting OCR process now")
-        self._do_ocr()
+        self._do_ocr(image_filepaths, cloud_storage_object_paths)
         logger.info("OCR process finished, saving model object again")
         logger.info(f"Cloud Log: Output GUID - {self.guid}")
 
