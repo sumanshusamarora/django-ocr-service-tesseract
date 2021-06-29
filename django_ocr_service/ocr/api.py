@@ -40,7 +40,7 @@ class GenerateToken(APIView):
         )
         if token:
             return Response(data={"token": token}, status=status.HTTP_200_OK)
-        else: #pragma: no cover
+        else:  # pragma: no cover
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -77,16 +77,17 @@ class GenerateOCR(APIView):
                 model_obj = OCRInput.objects.create(**data)
                 if model_obj.result_response:
                     return Response(
-                        data={"guid": model_obj.guid},
-                        status=status.HTTP_200_OK,
+                        data={"guid": model_obj.guid}, status=status.HTTP_200_OK,
                     )
                 else:
                     return Response(
-                        data={"error": "OCR unsuccessful. Did you input correct file/path?"},
+                        data={
+                            "error": "OCR unsuccessful. Did you input correct file/path?"
+                        },
                         status=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     )
 
-            except Exception as exception: #pragma: no cover
+            except Exception as exception:  # pragma: no cover
                 return Response(
                     data={"Response": exception},
                     status=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -118,8 +119,7 @@ class GetOCR(APIView):
                 stat = status.HTTP_200_OK
 
             elif (
-                    len(output_objs) != input_obj.page_count
-                    and len(output_objs) > 0
+                len(output_objs) != input_obj.page_count and len(output_objs) > 0
             ):  # pragma: no cover
                 logger.info("OCR not finished. Returning unfinished results")
                 stat = status.HTTP_206_PARTIAL_CONTENT
@@ -135,7 +135,7 @@ class GetOCR(APIView):
         :param request:
         :return:
         """
-        if isinstance(request.query_params, QueryDict): #pragma: no cover
+        if isinstance(request.query_params, QueryDict):  # pragma: no cover
             data = request.query_params.dict()
         else:  # Handles test case when data is passed as dict
             data = request.query_params
@@ -164,7 +164,7 @@ class GetOCR(APIView):
                 return Response(data=response_dict, status=stat)
 
 
-class GenerateOCR_SNS(APIView): #pragma: no cover
+class GenerateOCR_SNS(APIView):  # pragma: no cover
     """
     View to enable POST method for text extraction
     """

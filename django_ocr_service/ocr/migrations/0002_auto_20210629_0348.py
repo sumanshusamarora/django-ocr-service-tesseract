@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ocr', '0001_initial'),
+        ("ocr", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='ocrinput',
-            name='checksum',
+            model_name="ocrinput",
+            name="checksum",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name='ocroutput',
-            name='checksum',
+            model_name="ocroutput",
+            name="checksum",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
     ]

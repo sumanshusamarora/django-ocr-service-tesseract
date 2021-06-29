@@ -148,7 +148,7 @@ class OCRInput(models.Model):
                     "ocr_config": None,
                     "ocr_engine": "tesseract",
                     "inputocr_guid": self.guid,
-                    "cloud_imagepath": cloud_storage_object_paths[index]
+                    "cloud_imagepath": cloud_storage_object_paths[index],
                 }
 
                 use_async_to_ocr = settings.USE_BACKGROUND_TASK_FOR_SPEED
@@ -157,26 +157,29 @@ class OCRInput(models.Model):
                     try:
                         from django_q.models import Schedule
                         from django_q.tasks import schedule
+
                         logger.info("Scheduling background task to OCR image!!!")
                         schedule(
-                            func='ocr.ocr_utils.ocr_image',
+                            func="ocr.ocr_utils.ocr_image",
                             name=f"OCR-{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
                             schedule_type=Schedule.ONCE,
                             **kw_args,
                             next_run=arrow.utcnow().shift(seconds=3).datetime,
                         )
-                        logger.info("Background task to OCR image scheduled successfully!!!")
+                        logger.info(
+                            "Background task to OCR image scheduled successfully!!!"
+                        )
                     except Exception as exception:
-                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(
+                            "Error adding background task to upload image to cloud"
+                        )
                         logger.error(exception)
                         use_async_to_ocr = False
 
                 # Else condition is not used on purpose since we want to move the job to happen in
                 # sync fashion if job scheduling fails
                 if not use_async_to_ocr:
-                    ocr_image(
-                        **kw_args
-                    )
+                    ocr_image(**kw_args)
 
             if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
                 # Only delete input file if its a pdf since we convert it to images and re-upload it
@@ -223,7 +226,6 @@ class OCRInput(models.Model):
         image_filepaths, cloud_storage_object_paths = self._prepare_for_ocr()
         super(OCRInput, self).save()
         logger.info("All set to start OCR. Model saved again!")
-
 
         logger.info("Starting OCR process now")
         self._do_ocr(image_filepaths, cloud_storage_object_paths)

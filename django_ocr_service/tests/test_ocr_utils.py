@@ -43,6 +43,7 @@ from .help_testutils import (
     UploadDeleteTestFile,
 )
 
+
 @pytest.mark.parametrize(
     "filepath, output",
     [
@@ -51,7 +52,6 @@ from .help_testutils import (
         (os.path.join(TEST_DIR, os.listdir(TEST_DIR)[0]), False),
     ],
 )
-
 def test_is_pdf(filepath, output):
     """
 
@@ -74,6 +74,7 @@ def test_is_image(filepath, output):
     :return:
     """
     assert is_image(filepath) == output
+
 
 def test_download_locally_if_cloud_storage_path():
     """
@@ -139,9 +140,7 @@ def test_pdf_to_image_simple_tc():
 
     # Test
     local_image_fps, cloud_fps = pdf_to_image(
-        pdf_path=TESTFILE_PDF_PATH,
-        output_folder=local_dir,
-        save_images_to_cloud=False,
+        pdf_path=TESTFILE_PDF_PATH, output_folder=local_dir, save_images_to_cloud=False,
     )
 
     # Teardown
@@ -163,8 +162,7 @@ def test_pdf_to_image_simple_default_folder():
     """
     # Test
     local_image_fps, cloud_fps = pdf_to_image(
-        pdf_path=TESTFILE_PDF_PATH,
-        save_images_to_cloud=False,
+        pdf_path=TESTFILE_PDF_PATH, save_images_to_cloud=False,
     )
     # Teardown
     for impath in local_image_fps:
@@ -261,9 +259,7 @@ def test_pdf_to_image_save_to_cloud_append_datetime():
     """
     # Test
     local_image_fps, cloud_kw_args = pdf_to_image(
-        pdf_path=TESTFILE_PDF_PATH,
-        save_images_to_cloud=True,
-        append_datetime=True,
+        pdf_path=TESTFILE_PDF_PATH, save_images_to_cloud=True, append_datetime=True,
     )
 
     # Teardown
@@ -294,6 +290,7 @@ def test_pdf_to_image_save_to_cloud_append_datetime():
         and delete_count == 2
         and datetime.now().date().__str__() in cloud_stroage_paths[0]
     )
+
 
 @pytest.mark.django_db(transaction=True)
 def test_pdf_to_image_save_to_cloud_async():
@@ -390,6 +387,7 @@ def test_build_tesseract_ocr_config_setting(settings):
         == "txt --oem 4 --psm 1 --tessdata-dir something"
     )
 
+
 @pytest.mark.django_db(transaction=True)
 def test_ocr_image():
     """
@@ -403,6 +401,7 @@ def test_ocr_image():
         ocr_engine="tesseract",
     )
     assert isinstance(out, str)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_ocr_image_no_preprocess():
@@ -418,6 +417,7 @@ def test_ocr_image_no_preprocess():
     )
     assert isinstance(out, str)
 
+
 @pytest.mark.django_db(transaction=True)
 def test_ocr_image_manual_ocr_config():
     """
@@ -432,6 +432,7 @@ def test_ocr_image_manual_ocr_config():
     )
     assert isinstance(out, str)
 
+
 def test_generate_text_from_ocr_output():
     """
 
@@ -441,25 +442,27 @@ def test_generate_text_from_ocr_output():
     text = generate_text_from_ocr_output(dataframe)
     assert isinstance(text, str)
 
+
 def test_load_image_preprocess():
     """
 
     :return:
     """
-    image_array = load_image(imagepath=TESTFILE_IMAGE_PATH,
-                             preprocess=True,
-                             )
+    image_array = load_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=True,)
     assert isinstance(image_array, np.ndarray)
+
 
 def test_load_image_no_preprocess():
     """
 
     :return:
     """
-    image_array = load_image(imagepath=TESTFILE_IMAGE_PATH,
-                             preprocess=False,
-                             )
-    assert isinstance(image_array, np.ndarray) and image_array.shape == Image.open(TESTFILE_IMAGE_PATH).size[::-1]
+    image_array = load_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False,)
+    assert (
+        isinstance(image_array, np.ndarray)
+        and image_array.shape == Image.open(TESTFILE_IMAGE_PATH).size[::-1]
+    )
+
 
 def test_ocr_using_tesseract_engine():
     """
@@ -467,6 +470,7 @@ def test_ocr_using_tesseract_engine():
     :return:
     """
     assert isinstance(ocr_using_tesseract_engine(TESTFILE_IMAGE_PATH), str)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_get_obj_if_already_present():
@@ -488,10 +492,7 @@ def test_get_obj_if_already_present():
     )
     guid = "test_get_obj_if_already_present"
 
-    input_obj = OCRInput.objects.create(
-        file=upload_file,
-        guid=guid,
-    )
+    input_obj = OCRInput.objects.create(file=upload_file, guid=guid,)
     checksum_image_file = checksum.get_for_file(TESTFILE_IMAGE_PATH)
 
     out_before_adding = get_obj_if_already_present(checksum_image_file)
@@ -500,7 +501,7 @@ def test_get_obj_if_already_present():
         guid=input_obj,
         image_path=TESTFILE_IMAGE_PATH,
         checksum=checksum_image_file,
-        text="blah blah"
+        text="blah blah",
     )
 
     out_after_adding = get_obj_if_already_present(checksum_image_file)
@@ -528,22 +529,16 @@ def test_ocr_image_when_object_already_present():
     )
     guid = "test_get_obj_if_already_present"
 
-    input_obj = OCRInput.objects.create(
-        file=upload_file,
-        guid=guid,
-    )
+    input_obj = OCRInput.objects.create(file=upload_file, guid=guid,)
     checksum_image_file = checksum.get_for_file(TESTFILE_IMAGE_PATH)
 
     _ = OCROutput.objects.create(
         guid=input_obj,
         image_path=TESTFILE_IMAGE_PATH,
         checksum=checksum_image_file,
-        text="blah blah"
+        text="blah blah",
     )
 
-    text = ocr_image(
-        imagepath=TESTFILE_IMAGE_PATH,
-        preprocess=False
-    )
+    text = ocr_image(imagepath=TESTFILE_IMAGE_PATH, preprocess=False)
 
     assert text == "blah blah"
