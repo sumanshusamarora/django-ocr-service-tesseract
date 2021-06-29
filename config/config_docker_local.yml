@@ -34,3 +34,5 @@ DELETE_OLD_IMAGES_DAYS: 2
 
 # MONGO
 MONGO_HOST: ec2-34-209-32-107.us-west-2.compute.amazonaws.com
+
+LOCAL_FILES_SAVE_DIR: /dev/xvda/downloads
