@@ -4,6 +4,7 @@ Define models to enable easy integration
 import logging
 import uuid
 
+import arrow
 import s3urls
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -132,18 +133,38 @@ class OCRInput(models.Model):
                 kw_args = {
                     "imagepath": image,
                     "preprocess": True,
-                    "inputocr_instance": self,
-                    "cloud_imagepath": cloud_storage_object_paths[index],
-                    "ocr_output_model": OCROutput,
+                    "ocr_config": None,
+                    "ocr_engine": "tesseract",
+                    "inputocr_guid": None,
+                    "cloud_imagepath": cloud_storage_object_paths[index]
                 }
 
-                if settings.USE_BACKGROUND_TASK_FOR_SPEED:
-                    from django_q.tasks import async_task
-                    async_task(ocr_image,
-                               task_name=f"{self.guid}-{image}",
-                               **kw_args)
-                else:
-                    ocr_image(**kw_args)
+                use_async_to_ocr = settings.USE_BACKGROUND_TASK_FOR_SPEED
+
+                if use_async_to_ocr:
+                    try:
+                        from django_q.models import Schedule
+                        from django_q.tasks import schedule
+                        logger.info("Scheduling background task to OCR image!!!")
+                        schedule(
+                            func='ocr.ocr_utils.ocr_image',
+                            name=f"OCR-{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
+                            schedule_type=Schedule.ONCE,
+                            **kw_args,
+                            next_run=arrow.utcnow().shift(seconds=3).datetime,
+                        )
+                        logger.info("Background task to OCR image scheduled successfully!!!")
+                    except Exception as exception:
+                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(exception)
+                        use_async_to_ocr = False
+
+                # Else condition is not used on purpose since we want to move the job to happen in
+                # sync fashion if job scheduling fails
+                if not use_async_to_ocr:
+                    ocr_image(
+                        **kw_args
+                    )
 
             if settings.DROP_INPUT_FILE_POST_PROCESSING and not self.input_is_image:
                 # Only delete input file if its a pdf since we convert it to images and re-upload it

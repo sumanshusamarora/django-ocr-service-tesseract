@@ -5,7 +5,9 @@ from datetime import datetime
 import os
 import logging
 import time
+import uuid
 
+import arrow
 import cv2
 from django.conf import settings
 import multiprocessing
@@ -17,6 +19,7 @@ from PyPDF2 import PdfFileReader
 from pytesseract import image_to_data
 from s3urls import parse_url
 
+import ocr
 from . import (
     generate_cloud_storage_key,
     is_cloud_storage,
@@ -168,21 +171,37 @@ def pdf_to_image(
 
                 logging.info("Starting image upload")
 
-                from django_q.tasks import async_task
-
                 if use_async_to_upload:
+                    from django_q.models import Schedule
+                    from django_q.tasks import schedule
                     logging.info("Uploading to cloud through background job")
-                    async_task(upload_to_cloud_storage,
-                               task_name=f"{kw_args['prefix']}-{kw_args['key']}",
-                               **kw_args)
+                    try:
+                        schedule(
+                            func='ocr.storage_utils.upload_to_cloud_storage',
+                            name=f"Upload-{kw_args['key']}-{uuid.uuid4().hex}"[:99],
+                            schedule_type=Schedule.ONCE,
+                            path=image,
+                            bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                            prefix=prefix,
+                            key=f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
+                            append_datetime=False,
+                            next_run=arrow.utcnow().shift(seconds=1).datetime,
+                        )
 
-                    cloud_storage_path = generate_cloud_storage_key(
-                        path=kw_args["path"],
-                        key=kw_args["key"],
-                        prefix=kw_args["prefix"],
-                        append_datetime=kw_args["append_datetime"],
-                    )
-                else:
+                        cloud_storage_path = generate_cloud_storage_key(
+                            path=kw_args["path"],
+                            key=kw_args["key"],
+                            prefix=kw_args["prefix"],
+                            append_datetime=kw_args["append_datetime"],
+                        )
+                    except Exception as exception:
+                        logger.error("Error adding background task to upload image to cloud")
+                        logger.error(exception)
+                        use_async_to_upload = False
+
+                # Else condition is not used on purpose since we want to move the job to happen in
+                # sync fashion if job scheduling fails
+                if not use_async_to_upload:
                     logging.info("Uploading to cloud in a blocking thread")
                     cloud_storage_path = upload_to_cloud_storage(**kw_args)
 
@@ -289,15 +308,19 @@ def build_tesseract_ocr_config(
 def ocr_image(
     imagepath: str,
     preprocess: bool = True,
-    ocr_config: str=None,
-    ocr_engine: str="tesseract",
-    inputocr_instance=None,
-    **kwargs,
+    ocr_config: str = None,
+    ocr_engine: str = "tesseract",
+    inputocr_guid: str = None,
+    cloud_imagepath: str = None,
 ):
     """
-
+    
     :param imagepath:
     :param preprocess:
+    :param ocr_config:
+    :param ocr_engine:
+    :param inputocr_guid:
+    :param cloud_imagepath:
     :return:
     """
     ocr_text = None
@@ -323,13 +346,14 @@ def ocr_image(
         logger.info(f"OCR results received for {imagepath}")
         ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 
-        if inputocr_instance is not None:
+        if inputocr_guid:
+            inputocr_instance = ocr.models.OCRInput(guid=inputocr_guid)
             logger.info(f"Saving OCR output to DB for {imagepath}")
-            kwargs["ocr_output_model"].objects.create(
+            _ = ocr.models.OCROutput.objects.create(
                 guid=inputocr_instance,
-                image_path=kwargs["cloud_imagepath"],
+                image_path=cloud_imagepath,
                 text=ocr_text,
-            )
+                )
             logger.info(f"OCR output saved to DB for {imagepath}")
 
     else:
