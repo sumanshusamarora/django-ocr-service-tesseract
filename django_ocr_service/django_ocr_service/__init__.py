@@ -105,13 +105,13 @@ if os.environ.get("DB_SCHEMA"):
         "options": f"-c search_path={os.environ.get('DB_SCHEMA')}"
     }
 
-# USE_BACKGROUND_TASK_FOR_SPEED
-if os.environ.get("USE_BACKGROUND_TASK_FOR_SPEED"):
-    config["USE_BACKGROUND_TASK_FOR_SPEED"] = ast.literal_eval(
-        os.environ.get("USE_BACKGROUND_TASK_FOR_SPEED")
+# USE_ASYNC_FOR_SPEED
+if os.environ.get("USE_ASYNC_FOR_SPEED"):
+    config["USE_ASYNC_FOR_SPEED"] = ast.literal_eval(
+        os.environ.get("USE_ASYNC_FOR_SPEED")
     )
-if config.get("USE_BACKGROUND_TASK_FOR_SPEED") is None:
-    config["USE_BACKGROUND_TASK_FOR_SPEED"] = True
+if config.get("USE_ASYNC_FOR_SPEED") is None:
+    config["USE_ASYNC_FOR_SPEED"] = True
 
 # DROP_INPUT_FILE_POST_PROCESSING
 if os.environ.get("DROP_INPUT_FILE_POST_PROCESSING"):

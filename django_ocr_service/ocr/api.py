@@ -77,7 +77,8 @@ class GenerateOCR(APIView):
                 model_obj = OCRInput.objects.create(**data)
                 if model_obj.result_response:
                     return Response(
-                        data={"guid": model_obj.guid}, status=status.HTTP_200_OK,
+                        data={"guid": model_obj.guid},
+                        status=status.HTTP_200_OK,
                     )
                 else:
                     return Response(

@@ -146,7 +146,10 @@ class TestPostOCR:
         upload_file = SimpleUploadedFile(
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
-        response = self.django_client.post("/api/ocr/", data={"file": upload_file},)
+        response = self.django_client.post(
+            "/api/ocr/",
+            data={"file": upload_file},
+        )
 
         ocrinput_objs = OCRInput.objects.all().first()
         time.sleep(5)
@@ -165,7 +168,7 @@ class TestPostOCR:
 
         :return:
         """
-        settings.USE_BACKGROUND_TASK_FOR_SPEED = False
+        settings.USE_ASYNC_FOR_SPEED = False
         self.django_client.force_authenticate(user=self.user)
         token_response = self.django_client.get(
             "/api/get-token/", content_type="application/json"
@@ -179,7 +182,10 @@ class TestPostOCR:
             name=filename, content=data.read(), content_type="multipart/form-data"
         )
 
-        response = self.django_client.post("/api/ocr/", data={"file": upload_file},)
+        response = self.django_client.post(
+            "/api/ocr/",
+            data={"file": upload_file},
+        )
 
         ocrinput_objs = OCRInput.objects.all().first()
 
@@ -232,7 +238,8 @@ class TestGetOCR:
         time.sleep(5)
         self.django_client.credentials(HTTP_AUTHORIZATION="Token " + token)
         getocr_response = self.django_client.get(
-            "/api/get-ocr/", {"guid": response.data["guid"]},
+            "/api/get-ocr/",
+            {"guid": response.data["guid"]},
         )
         assert str(getocr_response.status_code).startswith("20")
 

@@ -46,7 +46,9 @@ class TestOCRInputOutputModel:
         :return:
         """
         ocr_input_object = OCRInput(
-            file=self.upload_file, guid=self.guid, ocr_config="--oem 4",
+            file=self.upload_file,
+            guid=self.guid,
+            ocr_config="--oem 4",
         )
         ocr_input_object.save()
         input_obj = OCRInput.objects.get(guid=self.guid)
@@ -72,7 +74,9 @@ class TestOCRInputOutputModel:
             charset=None,
         )
         ocr_input_object = OCRInput(
-            file=self.upload_image, guid=self.guid, ocr_config="--oem 4",
+            file=self.upload_image,
+            guid=self.guid,
+            ocr_config="--oem 4",
         )
         ocr_input_object.save()
         input_obj = OCRInput.objects.get(guid=self.guid)
@@ -87,6 +91,9 @@ class TestOCRInputOutputModel:
 
         :return:
         """
-        ocr_input_object = OCRInput(guid=self.guid, ocr_config="--oem 4",)
+        ocr_input_object = OCRInput(
+            guid=self.guid,
+            ocr_config="--oem 4",
+        )
         with pytest.raises(ValidationError):
             ocr_input_object.clean()

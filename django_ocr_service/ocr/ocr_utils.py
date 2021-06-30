@@ -4,16 +4,15 @@ Common OCR utils
 from datetime import datetime
 import os
 import logging
-import time
-import uuid
+import warnings
 
-import arrow
 import checksum
 import cv2
 from django.conf import settings
 import multiprocessing
 import numpy as np
 import pandas as pd
+from pandas.core.common import SettingWithCopyWarning
 from pathlib import Path
 from pdf2image import convert_from_path
 from PyPDF2 import PdfFileReader
@@ -29,6 +28,7 @@ from . import (
     upload_to_cloud_storage,
 )
 
+warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 logger = logging.getLogger(__name__)
 
 
@@ -63,29 +63,6 @@ def is_image(filepath: str):
     return False
 
 
-def clean_local_storage(dirpath: str, days: int = 2):
-    """
-    Method to clean local storage
-    :return:
-    """
-    if not os.path.isdir(dirpath):
-        raise NotADirectoryError
-
-    os_walker = os.walk(dirpath)
-    now = time.time()
-
-    deleted = 0
-    for dir, subdirs, file_list in os_walker:
-        for file in file_list:
-            if file:
-                filepath = os.path.join(dir, file)
-                if os.stat(filepath).st_mtime < now - (days * 24 * 60 * 60):
-                    os.remove(filepath)
-                    deleted += 1
-
-    logger.info(f"Removed {deleted} files from {dirpath}")
-
-
 def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
     """
 
@@ -109,23 +86,21 @@ def download_locally_if_cloud_storage_path(filepath: str, save_dir: str):
     return local_path
 
 
-def pdf_to_image(
+def generate_save_image_kwargs(
+    images: list,
     pdf_path: str,
-    output_folder: str = None,
-    save_images_to_cloud=True,
-    prefix: str = "media",
-    dpi: int = 300,
-    fmt: str = "png",
-    cloud_storage: str = "s3",
-    use_async_to_upload: bool = False,
     append_datetime: bool = True,
+    prefix: str = "media",
+    cloud_storage="s3",
 ):
     """
 
-    :param pdfs:
+    :param images:
+    :param pdf_path:
+    :param prefix:
+    :param cloud_storage:
     :return:
     """
-    cloud_storage_object_paths = []
     cloud_storage_objects_kw_args = []
 
     if not prefix:
@@ -135,6 +110,92 @@ def pdf_to_image(
         logging.info("Append date is True, adding datetime to prefix")
         prefix = f"{prefix}/{datetime.utcnow().strftime('%Y-%m-%d-%H-%M-%S')}"
 
+    if cloud_storage == "s3":
+        logger.info("Using S3 cloud storage backend")
+        # Save to S3 if save_images_to_cloud is True
+        for image in images:
+            kw_args = {
+                "path": image,
+                "bucket": settings.AWS_STORAGE_BUCKET_NAME,
+                "prefix": prefix,
+                "key": f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
+                "append_datetime": False,
+            }
+
+            cloud_storage_objects_kw_args.append(kw_args)
+    else:
+        raise NotImplementedError("No other storage backend implemented except s3")
+
+    return cloud_storage_objects_kw_args
+
+
+def save_images(kw_args, use_async_to_upload: bool = False):
+    """
+
+    :param kw_args:
+    :param use_async_to_upload:
+    :return:
+    """
+
+    if not isinstance(kw_args, list):
+        kw_args = [kw_args]
+
+    logging.info("Starting image upload")
+    cloud_storage_object_paths = []
+    for kw_arg in kw_args:
+        if use_async_to_upload:
+            from django_q.tasks import async_task
+            logging.info("Uploading to cloud through async task")
+            try:
+                # Below async task may already be a async thread but starting another thread to do this job would
+                # increase the speed of async OCR thread which is our prime motive. The upload is completely
+                # alright to happen in a separate thread too
+                async_task(
+                    func="ocr.storage_utils.upload_to_cloud_storage",
+                    group="Upload",
+                    **kw_arg,
+                )
+
+                cloud_storage_path = generate_cloud_storage_key(
+                    path=kw_arg["path"],
+                    key=kw_arg["key"],
+                    prefix=kw_arg["prefix"],
+                    append_datetime=kw_arg["append_datetime"],
+                )
+            except Exception as exception:
+                logger.error("Error adding background task to upload image to cloud")
+                logger.error(exception)
+                use_async_to_upload = False
+
+        # Else condition is not used on purpose since we want to move the job to happen in
+        # sync fashion if job scheduling fails
+        if not use_async_to_upload:
+            logging.info("Uploading to cloud in a blocking thread")
+            cloud_storage_path = upload_to_cloud_storage(**kw_arg)
+            logging.info("File uploaded to cloud in a blocking thread")
+
+        cloud_storage_object_paths.append(cloud_storage_path)
+
+    # Logging to show image upload status
+    if not len(cloud_storage_object_paths):
+        logger.warning("Image upload failed")
+    elif not len(cloud_storage_object_paths) == len(kw_args):
+        logger.warning("Not all images got uploaded to cloud storage")
+
+    return cloud_storage_object_paths
+
+
+def pdf_to_image(
+    pdf_path: str, output_folder: str = None, dpi: int = 300, fmt: str = "png"
+):
+    """
+
+    :param pdf_path:
+    :param output_folder:
+    :param dpi:
+    :param fmt:
+    :return:
+    """
     if not output_folder:
         output_folder = settings.LOCAL_FILES_SAVE_DIR
 
@@ -156,72 +217,7 @@ def pdf_to_image(
     if not isinstance(images, list):
         images = [images]
 
-    if save_images_to_cloud:
-        if cloud_storage == "s3":
-            logger.info("Using S3 cloud storage backend")
-            # Save to S3 if save_images_to_cloud is True
-            for image in images:
-                kw_args = {
-                    "path": image,
-                    "bucket": settings.AWS_STORAGE_BUCKET_NAME,
-                    "prefix": prefix,
-                    "key": f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
-                    "append_datetime": False,
-                }
-
-                cloud_storage_objects_kw_args.append(kw_args)
-
-                logging.info("Starting image upload")
-
-                if use_async_to_upload:
-                    from django_q.models import Schedule
-                    from django_q.tasks import schedule
-
-                    logging.info("Uploading to cloud through background job")
-                    try:
-                        schedule(
-                            func="ocr.storage_utils.upload_to_cloud_storage",
-                            name=f"Upload-{kw_args['key']}-{uuid.uuid4().hex}"[:99],
-                            schedule_type=Schedule.ONCE,
-                            path=image,
-                            bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                            prefix=prefix,
-                            key=f"{os.path.split(pdf_path)[-1]}/{os.path.split(image)[-1]}",
-                            append_datetime=False,
-                            next_run=arrow.utcnow().shift(seconds=1).datetime,
-                        )
-
-                        cloud_storage_path = generate_cloud_storage_key(
-                            path=kw_args["path"],
-                            key=kw_args["key"],
-                            prefix=kw_args["prefix"],
-                            append_datetime=kw_args["append_datetime"],
-                        )
-                    except Exception as exception:
-                        logger.error(
-                            "Error adding background task to upload image to cloud"
-                        )
-                        logger.error(exception)
-                        use_async_to_upload = False
-
-                # Else condition is not used on purpose since we want to move the job to happen in
-                # sync fashion if job scheduling fails
-                if not use_async_to_upload:
-                    logging.info("Uploading to cloud in a blocking thread")
-                    cloud_storage_path = upload_to_cloud_storage(**kw_args)
-
-                cloud_storage_object_paths.append(cloud_storage_path)
-
-            if not len(cloud_storage_object_paths):
-                logger.warning("Image upload failed")
-
-            elif not len(cloud_storage_object_paths) == len(images):
-                logger.warning("Not all images got uploaded to cloud storage")
-        else:
-            logger.error("Other storage backends except S3 not implemented yet")
-            raise NotImplementedError
-
-    return images, cloud_storage_objects_kw_args
+    return images
 
 
 def generate_text_from_ocr_output(
@@ -367,7 +363,10 @@ def ocr_using_tesseract_engine(image, ocr_config=None):
     logger.info(f"OCR Config - {ocr_config}, OCR Language - {ocr_language}")
 
     image_data = image_to_data(
-        image, config=(ocr_config), lang=ocr_language, output_type="data.frame",
+        image,
+        config=(ocr_config),
+        lang=ocr_language,
+        output_type="data.frame",
     )
     ocr_text = generate_text_from_ocr_output(ocr_dataframe=image_data)
 
@@ -381,17 +380,27 @@ def ocr_image(
     ocr_engine: str = "tesseract",
     inputocr_guid: str = None,
     cloud_imagepath: str = None,
+    save_images_to_cloud: bool = True,
+    save_to_cloud_kw_args=None,
+    use_async_to_upload: bool = True,
 ):
     """
-    
+
     :param imagepath:
     :param preprocess:
     :param ocr_config:
     :param ocr_engine:
     :param inputocr_guid:
     :param cloud_imagepath:
+    :param save_images_to_cloud
+    :param save_to_cloud_kw_args
     :return:
     """
+    if save_images_to_cloud and not save_to_cloud_kw_args:
+        raise ValueError(
+            "Save kw_args dictionary input requires when save images input is True"
+        )
+
     ocr_text = None
 
     image_checksum = checksum.get_for_file(imagepath)
@@ -412,6 +421,10 @@ def ocr_image(
             raise NotImplementedError(
                 "No other OCR engine except tesseract is supported currently"
             )
+
+        # If checksum is unique and save to cloud is True, upload image to cloud storage
+        if save_images_to_cloud:
+            save_images(save_to_cloud_kw_args, use_async_to_upload)
 
     if inputocr_guid and ocr_text:
         inputocr_instance = ocr.models.OCRInput.objects.get(guid=inputocr_guid)

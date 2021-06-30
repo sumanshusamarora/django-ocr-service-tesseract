@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 # Below line is to ensure PIL does not throw error if it feels image is truncated
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
 def get_size_of_scaled_image(im):
     """
     Return resize scale

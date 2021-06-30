@@ -51,11 +51,15 @@ try:
     # Add new task to clean storage
     _ = schedule(
         name=schedule_task_name,
-        func="ocr.ocr_utils.clean_local_storage",
+        func="common_utils.clean_local_storage",
         schedule_type=Schedule.DAILY,
         dirpath=settings.LOCAL_FILES_SAVE_DIR,
         days=settings.DELETE_OLD_IMAGES_DAYS,
-        q_options={"ack_failure": True, "catch_up": False, "max_attempts": 1,},
+        q_options={
+            "ack_failure": True,
+            "catch_up": False,
+            "max_attempts": 1,
+        },
         next_run=arrow.utcnow().shift(days=1).replace(hour=10, minute=0).datetime,
     )
 
