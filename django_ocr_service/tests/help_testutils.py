@@ -92,5 +92,6 @@ class UploadDeleteTestFile:
         :return:
         """
         delete_objects_from_cloud_storage(
-            keys=self.cloud_upload_path, bucket=self.bucket,
+            keys=self.cloud_upload_path,
+            bucket=self.bucket,
         )

@@ -60,7 +60,7 @@ OCR_TESSDATA_DIR = config.get("OCR_TESSDATA_DIR")
 OCR_LANGUAGE = config.get("OCR_LANGUAGE")
 SAVE_IMAGES_TO_CLOUD = config.get("SAVE_IMAGES_TO_CLOUD")
 DROP_INPUT_FILE_POST_PROCESSING = config.get("DROP_INPUT_FILE_POST_PROCESSING")
-USE_BACKGROUND_TASK_FOR_SPEED = config.get("USE_BACKGROUND_TASK_FOR_SPEED")
+USE_ASYNC_FOR_SPEED = config.get("USE_ASYNC_FOR_SPEED")
 DELETE_OLD_IMAGES_DAYS = config.get("DELETE_OLD_IMAGES_DAYS")
 
 # REST
@@ -137,9 +137,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
 ]
 
 

@@ -4,7 +4,6 @@ Define models to enable easy integration
 import logging
 import uuid
 
-import arrow
 import checksum
 import s3urls
 from django.conf import settings
@@ -16,6 +15,7 @@ from urllib.parse import unquote_plus, unquote
 from . import (
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
+    generate_save_image_kwargs,
     delete_objects_from_cloud_storage,
     is_image,
     is_pdf,
@@ -91,11 +91,11 @@ class OCRInput(models.Model):
 
         if self.file.name:
             filepath = self.file.url
-            logger.info(f"Uploaded file - {filepath}")
+            logger.info(f"Received uploaded file - {filepath} as input")
         else:
             self.cloud_storage_uri = unquote(unquote_plus(self.cloud_storage_uri))
             filepath = unquote(unquote_plus(self.cloud_storage_uri))
-            logger.info(f"Stored file uri - {filepath}")
+            logger.info(f"Received stored file uri - {filepath} as input")
 
         local_filepath = download_locally_if_cloud_storage_path(
             filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
@@ -110,14 +110,24 @@ class OCRInput(models.Model):
         self.checksum = checksum.get_for_file(local_filepath)
 
         if is_pdf(local_filepath):
-            image_filepaths, cloud_storage_objects_kw_args = pdf_to_image(
+            image_filepaths = pdf_to_image(
                 pdf_path=local_filepath,
-                save_images_to_cloud=settings.SAVE_IMAGES_TO_CLOUD,
-                use_async_to_upload=settings.USE_BACKGROUND_TASK_FOR_SPEED,
+                output_folder=settings.LOCAL_FILES_SAVE_DIR,
             )
 
-            # Below line allows getting the upload paths even if upload to cloud storage
-            #  not finished due to threading workers still finishing their jobs
+        elif is_image(local_filepath):
+            image_filepaths = [local_filepath]
+            self.input_is_image = True
+
+        return image_filepaths, local_filepath
+
+    def _do_ocr(self, image_filepaths: list, cloud_storage_objects_kw_args: list):
+        """
+
+        :return:
+        """
+        if image_filepaths:
+            # Generate cloud storage paths to allow upload and ocr
             cloud_storage_object_paths = [
                 generate_cloud_storage_key(
                     path=kw_args["path"],
@@ -128,19 +138,6 @@ class OCRInput(models.Model):
                 for kw_args in cloud_storage_objects_kw_args
             ]
 
-        elif is_image(local_filepath):
-            image_filepaths = [local_filepath]
-            cloud_storage_object_paths = [filepath]
-            self.input_is_image = True
-
-        return image_filepaths, cloud_storage_object_paths
-
-    def _do_ocr(self, image_filepaths: list, cloud_storage_object_paths: list):
-        """
-
-        :return:
-        """
-        if image_filepaths:
             for index, image in enumerate(image_filepaths):
                 kw_args = {
                     "imagepath": image,
@@ -149,29 +146,29 @@ class OCRInput(models.Model):
                     "ocr_engine": "tesseract",
                     "inputocr_guid": self.guid,
                     "cloud_imagepath": cloud_storage_object_paths[index],
+                    "save_images_to_cloud": True,
+                    "save_to_cloud_kw_args": cloud_storage_objects_kw_args[index],
+                    "use_async_to_upload": settings.USE_ASYNC_FOR_SPEED,
                 }
 
-                use_async_to_ocr = settings.USE_BACKGROUND_TASK_FOR_SPEED
+                use_async_to_ocr = settings.USE_ASYNC_FOR_SPEED
 
                 if use_async_to_ocr:
                     try:
-                        from django_q.models import Schedule
-                        from django_q.tasks import schedule
+                        from django_q.tasks import async_task
 
-                        logger.info("Scheduling background task to OCR image!!!")
-                        schedule(
+                        logger.info("Adding async task to OCR image!!!")
+                        async_task(
                             func="ocr.ocr_utils.ocr_image",
-                            name=f"OCR-{self.guid}-{image}-{uuid.uuid4().hex}"[:99],
-                            schedule_type=Schedule.ONCE,
+                            group="OCR",
                             **kw_args,
-                            next_run=arrow.utcnow().shift(seconds=3).datetime,
                         )
                         logger.info(
-                            "Background task to OCR image scheduled successfully!!!"
+                            "Async task to OCR image added!!!"
                         )
                     except Exception as exception:
                         logger.error(
-                            "Error adding background task to upload image to cloud"
+                            "Error adding async task to upload image to cloud"
                         )
                         logger.error(exception)
                         use_async_to_ocr = False
@@ -223,12 +220,23 @@ class OCRInput(models.Model):
         super(OCRInput, self).save()
 
         logger.info("Starting pre-work for OCR...")
-        image_filepaths, cloud_storage_object_paths = self._prepare_for_ocr()
+        image_filepaths, local_filepath = self._prepare_for_ocr()
+
+        cloud_storage_objects_kw_args = generate_save_image_kwargs(
+            images=image_filepaths,
+            pdf_path=local_filepath,
+            prefix="media",
+            append_datetime=True,
+            cloud_storage="s3",
+        )
+
+        logger.info(
+            "Pre-work finished. All set to start OCR process after saving the model again"
+        )
         super(OCRInput, self).save()
-        logger.info("All set to start OCR. Model saved again!")
 
         logger.info("Starting OCR process now")
-        self._do_ocr(image_filepaths, cloud_storage_object_paths)
+        self._do_ocr(image_filepaths, cloud_storage_objects_kw_args)
         logger.info("OCR process finished, saving model object again")
         logger.info(f"Cloud Log: Output GUID - {self.guid}")
 

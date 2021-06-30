@@ -13,9 +13,11 @@ from .storage_utils import (
 from .image_preprocessing import preprocess_image_for_ocr
 
 from .ocr_utils import (
+    download_locally_if_cloud_storage_path,
+    generate_save_image_kwargs,
     is_pdf,
     is_image,
-    pdf_to_image,
     ocr_image,
-    download_locally_if_cloud_storage_path,
+    pdf_to_image,
+    save_images,
 )
