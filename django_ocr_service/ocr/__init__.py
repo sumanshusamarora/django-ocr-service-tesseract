@@ -2,7 +2,6 @@
 
 """
 from .storage_utils import (
-    delete_objects_from_cloud_storage,
     generate_cloud_storage_key,
     is_cloud_storage,
     load_from_cloud_storage_and_save,

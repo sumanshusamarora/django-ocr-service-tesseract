@@ -13,10 +13,6 @@ from s3urls import parse_url
 import signal
 import subprocess
 
-from ocr import (
-    delete_objects_from_cloud_storage,
-    object_exists_in_cloud_storage,
-)
 from ocr.models import OCRInput, OCROutput
 from .help_testutils import (
     create_rest_user_login_generate_token,
@@ -74,9 +70,6 @@ class TestPostOCR:
 
         :return:
         """
-        self.process = subprocess.Popen(
-            ["python", "manage.py", "qcluster"], shell=True, preexec_fn=os.setsid
-        )
         (
             self.django_client,
             self.user,
@@ -84,14 +77,6 @@ class TestPostOCR:
         ) = create_rest_user_login_generate_token()
         self.upload_delete = UploadDeleteTestFile()
         self.uploaded_filepath = self.upload_delete.upload_test_file_to_cloud_storage()
-
-    def teardown_method(self):
-        """
-
-        :return:
-        """
-        self.upload_delete.drop_test_file_from_cloud_storage()
-        os.killpg(self.process.pid, signal.SIGTERM)
 
     def test_post_ocr_unauthenticated(self):
         """
@@ -211,13 +196,6 @@ class TestGetOCR:
         ) = create_rest_user_login_generate_token()
         self.upload_delete = UploadDeleteTestFile()
         self.uploaded_filepath = self.upload_delete.upload_test_file_to_cloud_storage()
-
-    def teardown_method(self):
-        """
-
-        :return:
-        """
-        self.upload_delete.drop_test_file_from_cloud_storage()
 
     def test_get_ocr(self):
         """

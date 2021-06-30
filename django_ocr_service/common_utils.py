@@ -6,12 +6,15 @@ import os
 import time
 
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 
 logger = logging.getLogger(__name__)
 
-def get_schema_name(db_name: str="default"):
+
+def get_schema_name(db_name: str = "default"):
     """
-    Returns DB schema for default
+    Returns db schema for db_name input in settings.DATABASES
+    :param db_name:
     :return:
     """
     schema_name = None
@@ -31,6 +34,7 @@ def get_schema_name(db_name: str="default"):
             .strip()
         )
     return schema_name
+
 
 def clean_local_storage(dirpath: str, days: int = 2):
     """

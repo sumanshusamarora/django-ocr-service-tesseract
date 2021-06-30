@@ -20,7 +20,6 @@ from ocr.models import (
 )
 from ocr.ocr_utils import (
     build_tesseract_ocr_config,
-    download_locally_if_cloud_storage_path,
     generate_save_image_kwargs,
     generate_text_from_ocr_output,
     get_obj_if_already_present,
@@ -33,7 +32,6 @@ from ocr.ocr_utils import (
     save_images,
 )
 from ocr.storage_utils import (
-    delete_objects_from_cloud_storage,
     generate_cloud_storage_key,
     object_exists_in_cloud_storage,
 )
@@ -77,60 +75,6 @@ def test_is_image(filepath, output):
     """
     assert is_image(filepath) == output
 
-
-def test_download_locally_if_cloud_storage_path():
-    """
-
-    :return:
-    """
-    # Setup
-    local_dir = "/tmp/testdir/"
-    upload_delete_obj = UploadDeleteTestFile()
-    cloud_path = upload_delete_obj.upload_test_file_to_cloud_storage()
-    local_filepath = os.path.join(
-        local_dir, os.path.split(upload_delete_obj.filepath)[-1]
-    )
-    before_download_file_exists = os.path.isfile(local_filepath)
-
-    # Test
-    download_locally_if_cloud_storage_path(filepath=cloud_path, save_dir=local_dir)
-    after_download_file_exists = os.path.isfile(local_filepath)
-
-    # Teardown
-    if after_download_file_exists:
-        os.remove(local_filepath)
-
-    # Assert
-    assert not before_download_file_exists and after_download_file_exists
-
-
-def test_download_locally_if_cloud_storage_path_local_file():
-    """
-
-    :return:
-    """
-    # Setup
-    local_dir = "/tmp/testdir/"
-    local_filepath = os.path.join(local_dir, os.path.split(TESTFILE_PDF_PATH)[-1])
-    before_download_file_exists = os.path.isfile(local_filepath)
-
-    # Test
-    download_locally_if_cloud_storage_path(
-        filepath=TESTFILE_PDF_PATH, save_dir=local_dir
-    )
-    after_download_file_exists = os.path.isfile(local_filepath)
-
-    # Teardown
-    if after_download_file_exists:
-        os.remove(local_filepath)
-
-    # Assert
-    assert (
-        not before_download_file_exists
-        and not after_download_file_exists
-        and TESTFILE_PDF_PATH
-    )
-
 def test_pdf_to_image():
     """
 
@@ -146,6 +90,7 @@ def test_pdf_to_image():
         len(local_image_fps) == 2
         and os.path.split(local_image_fps[0])[0] == settings.LOCAL_FILES_SAVE_DIR
     )
+
 
 def test_pdf_to_image_pass_image():
     """
@@ -176,9 +121,9 @@ def test_pdf_to_image_specific_dir():
             os.remove(impath)
 
     assert (
-        len(local_image_fps) == 2
-        and os.path.split(local_image_fps[0])[0] == local_dir
+        len(local_image_fps) == 2 and os.path.split(local_image_fps[0])[0] == local_dir
     )
+
 
 def test_generate_save_image_kwargs():
     """
@@ -190,25 +135,26 @@ def test_generate_save_image_kwargs():
         pdf_path=TESTFILE_PDF_PATH,
         append_datetime=False,
         prefix="media",
-        cloud_storage = "s3",
+        cloud_storage="s3",
     )
     expected_out = [
         {
-            'path': TESTFILE_IMAGE_PATH,
-            'bucket': settings.CLOUD_STORAGE_BUCKET_NAME,
-            'prefix': 'media',
-            'key': 'sample-test-pdf.pdf/test-image.png',
-            'append_datetime': False
+            "path": TESTFILE_IMAGE_PATH,
+            "bucket": settings.CLOUD_STORAGE_BUCKET_NAME,
+            "prefix": "media",
+            "key": "sample-test-pdf.pdf/test-image.png",
+            "append_datetime": False,
         },
         {
-            'path': TESTFILE_PDF_PATH,
-            'bucket': settings.CLOUD_STORAGE_BUCKET_NAME,
-            'prefix': 'media',
-            'key': 'sample-test-pdf.pdf/sample-test-pdf.pdf',
-            'append_datetime': False
-        }
+            "path": TESTFILE_PDF_PATH,
+            "bucket": settings.CLOUD_STORAGE_BUCKET_NAME,
+            "prefix": "media",
+            "key": "sample-test-pdf.pdf/sample-test-pdf.pdf",
+            "append_datetime": False,
+        },
     ]
     assert out == expected_out
+
 
 def test_generate_save_image_kwargs_no_prefix():
     """
@@ -220,25 +166,26 @@ def test_generate_save_image_kwargs_no_prefix():
         pdf_path=TESTFILE_PDF_PATH,
         append_datetime=False,
         prefix=None,
-        cloud_storage = "s3",
+        cloud_storage="s3",
     )
     expected_out = [
         {
-            'path': TESTFILE_IMAGE_PATH,
-            'bucket': settings.CLOUD_STORAGE_BUCKET_NAME,
-            'prefix': '',
-            'key': 'sample-test-pdf.pdf/test-image.png',
-            'append_datetime': False
+            "path": TESTFILE_IMAGE_PATH,
+            "bucket": settings.CLOUD_STORAGE_BUCKET_NAME,
+            "prefix": "",
+            "key": "sample-test-pdf.pdf/test-image.png",
+            "append_datetime": False,
         },
         {
-            'path': TESTFILE_PDF_PATH,
-            'bucket': settings.CLOUD_STORAGE_BUCKET_NAME,
-            'prefix': '',
-            'key': 'sample-test-pdf.pdf/sample-test-pdf.pdf',
-            'append_datetime': False
-        }
+            "path": TESTFILE_PDF_PATH,
+            "bucket": settings.CLOUD_STORAGE_BUCKET_NAME,
+            "prefix": "",
+            "key": "sample-test-pdf.pdf/sample-test-pdf.pdf",
+            "append_datetime": False,
+        },
     ]
     assert out == expected_out
+
 
 def generate_save_image_kwargs_other_storage():
     """
@@ -254,6 +201,7 @@ def generate_save_image_kwargs_other_storage():
             cloud_storage="s3",
         )
 
+
 def test_save_images():
     """
 
@@ -267,8 +215,14 @@ def test_save_images():
         cloud_storage="s3",
     )
     save_images(kw_args=kw_args, use_async_to_upload=False)
-    objs_exist = [object_exists_in_cloud_storage(key=f'{kw_arg["prefix"]}/{kw_arg["key"]}', bucket=kw_arg["bucket"]) for kw_arg in kw_args]
+    objs_exist = [
+        object_exists_in_cloud_storage(
+            key=f'{kw_arg["prefix"]}/{kw_arg["key"]}', bucket=kw_arg["bucket"]
+        )
+        for kw_arg in kw_args
+    ]
     assert not [obj for obj in objs_exist if not obj]
+
 
 def test_build_tesseract_ocr_config_default():
     """
@@ -316,7 +270,7 @@ def test_ocr_image():
         preprocess=True,
         ocr_config=None,
         ocr_engine="tesseract",
-        save_images_to_cloud = False,
+        save_images_to_cloud=False,
     )
     assert isinstance(out, str)
 
@@ -351,6 +305,7 @@ def test_ocr_image_manual_ocr_config():
         save_images_to_cloud=False,
     )
     assert isinstance(out, str)
+
 
 @pytest.mark.django_db(transaction=True)
 def test_ocr_image_when_object_already_present():
@@ -477,6 +432,3 @@ def test_get_obj_if_already_present():
     out_after_adding = get_obj_if_already_present(checksum_image_file)
 
     assert not out_before_adding and out_after_adding == output_obj
-
-
-

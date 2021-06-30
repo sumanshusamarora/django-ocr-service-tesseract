@@ -90,6 +90,7 @@ def upload_to_cloud_storage(
     )
 
     try:
+        logger.info(f"Attempting to upload file {path} to {key}")
         with open(path, "rb") as infile:
             _ = cloud_storage.save(key, ContentFile(infile.read()))
         logger.info(f"Successfully uploaded file {path} to {key}")
