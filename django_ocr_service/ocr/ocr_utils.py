@@ -145,6 +145,7 @@ def save_images(kw_args, use_async_to_upload: bool = False):
     for kw_arg in kw_args:
         if use_async_to_upload:
             from django_q.tasks import async_task
+
             logging.info("Uploading to cloud through async task")
             try:
                 # Below async task may already be a async thread but starting another thread to do this job would
