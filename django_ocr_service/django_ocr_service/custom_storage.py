@@ -45,14 +45,6 @@ class CloudMediaHybridStorage(CloudMediaStorage):
         full_path = self.local_file_storage.path(filepath)
         return filepath, full_path
 
-    @staticmethod
-    def get_local_filepath(filename: str):
-        """
-        Returns local filepath given a file name
-        :return:
-        """
-        return os.path.join(settings.LOCAL_FILES_SAVE_DIR, filename)
-
     def _save(self, name, content):
         """
 
@@ -81,7 +73,7 @@ class CloudMediaHybridStorage(CloudMediaStorage):
             )
         else:
             logging.info("Uploading input file to cloud storage in a blocking thread")
-            filepath = super(CloudMediaHybridStorage, self)._save()
+            filepath = super(CloudMediaHybridStorage, self)._save(name, content)
             logging.info(
                 f"Input file upload complete in blocking thread. Cloud URL - {filepath}"
             )

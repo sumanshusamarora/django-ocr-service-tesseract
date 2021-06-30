@@ -9,7 +9,6 @@ from django.test import Client
 from rest_framework.test import APIClient
 
 from ocr import (
-    delete_objects_from_cloud_storage,
     upload_to_cloud_storage,
 )
 from ocr.token import create_auth_token
@@ -84,14 +83,3 @@ class UploadDeleteTestFile:
             append_datetime=False,
         )
         return self.cloud_upload_path
-
-    def drop_test_file_from_cloud_storage(self):
-        """
-
-        :param path:
-        :return:
-        """
-        delete_objects_from_cloud_storage(
-            keys=self.cloud_upload_path,
-            bucket=self.bucket,
-        )

@@ -51,6 +51,6 @@ def test_clean_local_storage():
 
     added_files_exist_count = len([file for file in tempfiles if os.path.isfile(file)])
     clean_local_storage(dirpath, days=0)
-    all_files_count = os.listdir(dirpath)
+    all_files_count = [file for file in os.listdir(dirpath) if os.path.isfile(os.path.join(dirpath, file))]
 
     assert added_files_exist_count == random_number and not len(all_files_count)

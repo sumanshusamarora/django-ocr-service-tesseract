@@ -10,13 +10,13 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from s3urls import parse_url
+from urllib.parse import unquote_plus, unquote
 
 from django_ocr_service.custom_storage import CloudMediaHybridStorage
 from . import (
     download_locally_if_cloud_storage_path,
     generate_cloud_storage_key,
     generate_save_image_kwargs,
-    delete_objects_from_cloud_storage,
     is_image,
     is_pdf,
     is_cloud_storage,
@@ -38,7 +38,7 @@ class OCRInput(models.Model):
         blank=True,
         null=True,
         help_text="File or Cloud storage URI required",
-        storage=CloudMediaHybridStorage,
+        storage = CloudMediaHybridStorage,
     )
     cloud_storage_uri = models.CharField(
         max_length=1000,
@@ -72,7 +72,21 @@ class OCRInput(models.Model):
         self.input_is_image = False
         image_filepaths = []
 
-        local_filepath = CloudMediaHybridStorage.get_local_filepath(self.file.name)
+        if self.file.name:
+            local_filepath = self.file.storage.local_filepath
+            logger.info(f"Received uploaded file - {local_filepath} as input")
+        else:
+            self.cloud_storage_uri = unquote(unquote_plus(self.cloud_storage_uri))
+            filepath = unquote(unquote_plus(self.cloud_storage_uri))
+            logger.info(f"Stored file uri - {filepath}")
+            local_filepath = download_locally_if_cloud_storage_path(
+                filepath, save_dir=settings.LOCAL_FILES_SAVE_DIR
+            )
+            logger.info(f"Cloud URI file downloaded locally at {local_filepath}")
+
+        if not isinstance(local_filepath, str):
+            logger.info("File download failed")
+            return
 
         self.checksum = checksum.get_for_file(local_filepath)
 
@@ -130,9 +144,13 @@ class OCRInput(models.Model):
                             group="OCR",
                             **kw_args,
                         )
-                        logger.info("Async task to OCR image added!!!")
+                        logger.info(
+                            "Async task to OCR image added!!!"
+                        )
                     except Exception as exception:
-                        logger.error("Error adding async task to upload image to cloud")
+                        logger.error(
+                            "Error adding async task to upload image to cloud"
+                        )
                         logger.error(exception)
                         use_async_to_ocr = False
 
