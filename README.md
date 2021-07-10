@@ -42,3 +42,5 @@ OCR_OEM: 11
 OCR_PSM: 0 # Optional
 OCR_LANGUAGE: "eng" # Optional
 ```
+
+[![buddy pipeline](https://app.buddy.works/mlaiconsulting/django-ocr-service-tesseract/pipelines/pipeline/336761/badge.svg?token=b6b63ed04ef9440a32ede29c63bfd6b7240149764f645d3971cc67db0c7b5a9d "buddy pipeline")](https://app.buddy.works/mlaiconsulting/django-ocr-service-tesseract/pipelines/pipeline/336761)

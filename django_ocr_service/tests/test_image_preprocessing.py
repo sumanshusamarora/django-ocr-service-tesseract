@@ -3,6 +3,7 @@ Tests for image preprocessing
 """
 import cv2
 from django.conf import settings
+import math
 import numpy as np
 from PIL import Image
 import pytest
@@ -48,7 +49,7 @@ class TestImagePreprocessing:
         """
         filepath = set_image_dpi(TESTFILE_IMAGE_PATH)
         temp_image = Image.open(filepath)
-        assert (int(temp_image.info["dpi"][0]), int(temp_image.info["dpi"][1])) == (300, 300)
+        assert (math.ceil(temp_image.info["dpi"][0]), math.ceil(temp_image.info["dpi"][1])) == (300, 300)
 
     def test_image_smoothening(self):
         """
