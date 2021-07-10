@@ -57,7 +57,7 @@ RUN mkdir -p /SRC/config
 RUN chmod 774 /SRC
 RUN mkdir /SRC/django_ocr_service
 COPY django_ocr_service /SRC/django_ocr_service/
-ADD config/config_docker_local.yml /SRC/config/config.yml
+ADD config/config_docker.yml /SRC/config/config.yml
 
 WORKDIR /SRC/django_ocr_service
 

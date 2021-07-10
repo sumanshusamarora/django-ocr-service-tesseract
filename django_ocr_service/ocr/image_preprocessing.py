@@ -29,7 +29,7 @@ def get_size_of_scaled_image(im):
     return size
 
 
-def set_image_dpi(file_path):
+def set_image_dpi(file_path, dpi=(300, 300)):
     """
     Sets image dpi
 
@@ -43,7 +43,7 @@ def set_image_dpi(file_path):
         delete=False, dir=settings.LOCAL_FILES_SAVE_DIR, suffix=".png"
     )
     temp_filename = temp_file.name
-    im_resized.save(temp_filename, dpi=(300, 300))
+    im_resized.save(temp_filename, dpi=dpi)
     return temp_filename
 
 

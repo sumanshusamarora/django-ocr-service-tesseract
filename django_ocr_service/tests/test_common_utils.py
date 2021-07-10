@@ -34,13 +34,14 @@ def test_get_schema_name_no_schema(settings):
     assert not get_schema_name()
 
 
-def test_clean_local_storage():
+def test_clean_local_storage(dirpath='/tmp/ocr_inputs/'):
     """
 
     :return:
     """
-    dirpath = "/tmp/ocr_inputs/"
     random_number = random.choice(list(range(6)))
+
+    os.makedirs(dirpath, exist_ok=True)
 
     tempfiles = []
     for _ in range(random_number):

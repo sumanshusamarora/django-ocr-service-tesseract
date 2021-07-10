@@ -19,7 +19,6 @@ from .help_testutils import TESTFILE_IMAGE_PATH
 
 pytestmark = pytest.mark.django_db()
 
-
 class TestImagePreprocessing:
     """ """
 
@@ -49,7 +48,7 @@ class TestImagePreprocessing:
         """
         filepath = set_image_dpi(TESTFILE_IMAGE_PATH)
         temp_image = Image.open(filepath)
-        assert temp_image.info["dpi"] == (300, 300)
+        assert (int(temp_image.info["dpi"][0]), int(temp_image.info["dpi"][1])) == (300, 300)
 
     def test_image_smoothening(self):
         """
