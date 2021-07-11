@@ -34,7 +34,7 @@ class CloudMediaHybridStorage(CloudMediaStorage):
 
     def _save_to_local(self, name, content):
         """
-
+        Saves the file to local storage
         :param name:
         :param content:
         :return:
@@ -47,7 +47,7 @@ class CloudMediaHybridStorage(CloudMediaStorage):
 
     def _save(self, name, content):
         """
-
+        Overrides parent class _save method
         :param name:
         :param content:
         :return:
